@@ -1,0 +1,151 @@
+
+<div class="login-page">
+
+  <div class="login-card">
+
+    <div class="top-accent"></div>
+
+    <div class="login-content">
+
+      <div class="brand-logo">
+        <div class="logo-circle">
+          <span>C</span>
+        </div>
+      </div>
+
+      <h1>CLAMS HR</h1>
+
+      <p class="subtitle">
+        Secure Human Resource Management Portal
+      </p>
+
+      <div class="welcome-text">
+        Welcome Back
+      </div>
+
+      <p class="instruction">
+        Please sign in to access your employee portal
+      </p>
+
+      <form (ngSubmit)="onLogin()" #loginForm="ngForm">
+
+        <!-- Username -->
+        <div class="form-group">
+
+          <label for="username">Username</label>
+
+          <div class="input-wrapper">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+              <path d="M4 20a8 8 0 0 1 16 0" />
+            </svg>
+
+            <input id="username"
+                   name="username"
+                   type="text"
+                   placeholder="Enter your numeric username"
+                   [(ngModel)]="username"
+                   autocomplete="username"
+                   inputmode="numeric"
+                   required />
+
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="form-group">
+
+          <label for="password">Password</label>
+
+          <div class="input-wrapper">
+
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="4" y="10" width="16" height="11" rx="2" />
+              <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </svg>
+
+            <input id="password"
+                   name="password"
+                   type="password"
+                   placeholder="Enter your password"
+                   [(ngModel)]="password"
+                   autocomplete="current-password"
+                   required />
+
+          </div>
+        </div>
+
+        <!-- Remember Me -->
+        <div class="remember-row">
+
+          <label class="remember-option">
+
+            <input type="checkbox"
+                   name="rememberMe"
+                   [(ngModel)]="rememberMe" />
+
+            <span>Remember Me</span>
+
+          </label>
+
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-row">
+
+          <button type="submit"
+                  class="login-button"
+                  [disabled]="loginForm.invalid || isLoading">
+
+            @if (isLoading) {
+            Signing in...
+            } @else {
+            <span>↪</span>
+            Login
+            }
+
+          </button>
+
+          <button type="button"
+                  class="reset-button"
+                  (click)="resetForm()"
+                  [disabled]="isLoading">
+
+            <span>↻</span>
+            Reset
+
+          </button>
+
+        </div>
+
+        <!-- Feedback -->
+        @if (message) {
+        <p class="message" role="status">
+          {{ message }}
+        </p>
+        }
+
+        <!-- Forgot Password -->
+        <div class="forgot-password">
+
+          <button type="button"
+                  (click)="forgotPassword()">
+
+            Forgot Password?
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+    <div class="card-footer">
+      CLAMS HR | Human Resource Management System
+    </div>
+
+  </div>
+
+</div>

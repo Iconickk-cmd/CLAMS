@@ -1,0 +1,332 @@
+<div class="leave-page">
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">HUMAN RESOURCE MANAGEMENT</span>
+      <h1>Leave Types Management</h1>
+      <p>Configure and manage the types of leave available to employees.</p>
+    </div>
+
+    <button class="primary-button" (click)="openAddForm()">
+      + Add Leave Type
+    </button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <span>Total Leave Types</span>
+      <strong>{{ leaveTypes.length }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Active Leave Types</span>
+      <strong>{{ activeCount }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Paid Leave Types</span>
+      <strong>{{ paidCount }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Unpaid Leave Types</span>
+      <strong>{{ unpaidCount }}</strong>
+    </div>
+
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="notice success" *ngIf="message">
+    {{ message }}
+    <button type="button" (click)="message = ''">×</button>
+  </div>
+
+  <div class="notice error" *ngIf="errorMessage && !showForm">
+    {{ errorMessage }}
+    <button type="button" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- FILTERS -->
+  <section class="filter-card">
+
+    <div class="section-heading">
+      <div>
+        <h2>Leave Type Register</h2>
+        <p>Search and filter configured leave types.</p>
+      </div>
+    </div>
+
+    <div class="filter-grid">
+
+      <div class="field">
+        <label>Search</label>
+        <input type="text"
+               [(ngModel)]="searchTerm"
+               placeholder="Search by code, name or description">
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <select [(ngModel)]="selectedStatus">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Payment Category</label>
+        <select [(ngModel)]="selectedPayment">
+          <option value="">All Categories</option>
+          <option value="paid">Paid Leave</option>
+          <option value="unpaid">Unpaid Leave</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="reset-button" (click)="clearFilters()">
+          Clear Filters
+        </button>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- TABLE -->
+  <section class="table-card">
+
+    <div class="table-heading">
+      <div>
+        <h2>Configured Leave Types</h2>
+        <p>{{ filteredLeaveTypes.length }} leave type(s) displayed</p>
+      </div>
+
+      <button class="refresh-button" (click)="loadLeaveTypes()">
+        ↻ Refresh
+      </button>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      Loading leave types...
+    </div>
+
+    <div class="error-state" *ngIf="hasError && !isLoading">
+      <p>Unable to retrieve leave types.</p>
+      <button class="primary-button" (click)="loadLeaveTypes()">
+        Try Again
+      </button>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isLoading && !hasError">
+
+      <table>
+        <thead>
+          <tr>
+            <th>CODE</th>
+            <th>LEAVE TYPE</th>
+            <th>DESCRIPTION</th>
+            <th>PAYMENT</th>
+            <th>APPROVAL</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let item of filteredLeaveTypes">
+
+            <td>
+              <strong class="code-label">{{ item.code }}</strong>
+            </td>
+
+            <td>
+              <strong>{{ item.name }}</strong>
+            </td>
+
+            <td>
+              {{ item.description || 'No description' }}
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [ngClass]="item.isPaid ? 'paid' : 'unpaid'">
+                {{ item.isPaid ? 'Paid' : 'Unpaid' }}
+              </span>
+            </td>
+
+            <td>
+              {{ item.requiresApproval ? 'Required' : 'Not required' }}
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [ngClass]="item.isActive ? 'active' : 'inactive'">
+                {{ item.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+
+                <button type="button"
+                        class="edit-button"
+                        (click)="openEditForm(item)">
+                  Edit
+                </button>
+
+                <button type="button"
+                        class="deactivate-button"
+                        *ngIf="item.isActive"
+                        (click)="deactivateLeaveType(item)">
+                  Deactivate
+                </button>
+
+                <button type="button"
+                        class="activate-button"
+                        *ngIf="!item.isActive"
+                        (click)="activateLeaveType(item)">
+                  Reactivate
+                </button>
+
+              </div>
+            </td>
+
+          </tr>
+
+          <tr *ngIf="filteredLeaveTypes.length === 0">
+            <td colspan="7" class="empty-state">
+              No leave types found.
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+
+  </section>
+
+  <!-- ADD / EDIT MODAL -->
+  <div class="modal-overlay" *ngIf="showForm">
+
+    <div class="leave-modal">
+
+      <div class="modal-header">
+
+        <div>
+          <span class="eyebrow">LEAVE CONFIGURATION</span>
+
+          <h2>
+            {{ isEditing ? 'Edit Leave Type' : 'Add New Leave Type' }}
+          </h2>
+
+          <p>Enter the leave type details below.</p>
+        </div>
+
+        <button type="button"
+                class="close-button"
+                (click)="closeForm()">
+          ×
+        </button>
+
+      </div>
+
+      <div class="notice error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <form (ngSubmit)="saveLeaveType()" #leaveForm="ngForm">
+
+        <div class="field">
+          <label>Leave Type Code <span>*</span></label>
+          <input type="text"
+                 name="code"
+                 [(ngModel)]="form.code"
+                 required
+                 maxlength="30"
+                 placeholder="e.g. ANNUAL">
+        </div>
+
+        <div class="field">
+          <label>Leave Type Name <span>*</span></label>
+          <input type="text"
+                 name="name"
+                 [(ngModel)]="form.name"
+                 required
+                 maxlength="100"
+                 placeholder="e.g. Annual Leave">
+        </div>
+
+        <div class="field">
+          <label>Description</label>
+          <textarea name="description"
+                    [(ngModel)]="form.description"
+                    maxlength="500"
+                    rows="3"
+                    placeholder="Describe the purpose of this leave type">
+          </textarea>
+        </div>
+
+        <div class="option-card">
+
+          <label class="checkbox-option">
+            <input type="checkbox"
+                   name="isPaid"
+                   [(ngModel)]="form.isPaid">
+
+            <span>
+              <strong>Paid Leave</strong>
+              <small>
+                The leave type uses the employee's leave entitlement balance.
+              </small>
+            </span>
+          </label>
+
+          <label class="checkbox-option">
+            <input type="checkbox"
+                   name="requiresApproval"
+                   [(ngModel)]="form.requiresApproval">
+
+            <span>
+              <strong>Requires Approval</strong>
+              <small>
+                Applications for this leave type require approval.
+              </small>
+            </span>
+          </label>
+
+        </div>
+
+        <div class="modal-actions">
+
+          <button type="button"
+                  class="reset-button"
+                  (click)="closeForm()">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="primary-button"
+                  [disabled]="isSaving || leaveForm.invalid">
+
+            {{
+              isSaving
+                ? 'Saving...'
+                : (isEditing ? 'Update Leave Type' : 'Save Leave Type')
+            }}
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>

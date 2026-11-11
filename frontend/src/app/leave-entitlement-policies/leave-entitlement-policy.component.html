@@ -1,0 +1,486 @@
+<div class="policy-page">
+
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">HUMAN RESOURCE MANAGEMENT</span>
+      <h1>Leave Entitlement Policies</h1>
+      <p>Configure annual leave entitlements, monthly accrual and carry-forward rules.</p>
+    </div>
+
+    <button class="primary-button" (click)="openAddForm()">
+      + Add Entitlement Policy
+    </button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-grid">
+
+    <div class="summary-card">
+      <span>Total Policies</span>
+      <strong>{{ policies.length }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Active Policies</span>
+      <strong>{{ activeCount }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Employment Category Policies</span>
+      <strong>{{ employmentPolicyCount }}</strong>
+    </div>
+
+    <div class="summary-card">
+      <span>Individual Employee Overrides</span>
+      <strong>{{ employeePolicyCount }}</strong>
+    </div>
+
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="notice success" *ngIf="message">
+    {{ message }}
+    <button type="button" (click)="message = ''">×</button>
+  </div>
+
+  <div class="notice error" *ngIf="errorMessage && !showForm">
+    {{ errorMessage }}
+    <button type="button" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- FILTERS -->
+  <section class="filter-card">
+
+    <div class="section-heading">
+      <div>
+        <h2>Policy Register</h2>
+        <p>Search and filter configured leave entitlement policies.</p>
+      </div>
+    </div>
+
+    <div class="filter-grid">
+
+      <div class="field">
+        <label>Search</label>
+        <input type="text"
+               [(ngModel)]="searchTerm"
+               placeholder="Search leave type, employee or category">
+      </div>
+
+      <div class="field">
+        <label>Leave Type</label>
+        <select [(ngModel)]="selectedLeaveType">
+          <option value="">All Leave Types</option>
+          <option *ngFor="let item of leaveTypes" [value]="item.id">
+            {{ item.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Policy Target</label>
+        <select [(ngModel)]="selectedTarget">
+          <option value="">All Targets</option>
+          <option value="employment">Employment Category</option>
+          <option value="employee">Individual Employee</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Status</label>
+        <select [(ngModel)]="selectedStatus">
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button class="reset-button" (click)="clearFilters()">
+          Clear Filters
+        </button>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- POLICY TABLE -->
+  <section class="table-card">
+
+    <div class="table-heading">
+      <div>
+        <h2>Configured Entitlement Policies</h2>
+        <p>{{ filteredPolicies.length }} policy/policies displayed</p>
+      </div>
+
+      <button class="refresh-button" (click)="loadPolicies()">
+        ↻ Refresh
+      </button>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      Loading entitlement policies...
+    </div>
+
+    <div class="error-state" *ngIf="hasError && !isLoading">
+      <p>Unable to retrieve entitlement policies.</p>
+      <button class="primary-button" (click)="loadPolicies()">
+        Try Again
+      </button>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isLoading && !hasError">
+
+      <table>
+        <thead>
+          <tr>
+            <th>LEAVE TYPE</th>
+            <th>POLICY TARGET</th>
+            <th>ANNUAL DAYS</th>
+            <th>MONTHLY ACCRUAL</th>
+            <th>CARRY-FORWARD</th>
+            <th>EFFECTIVE PERIOD</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let item of filteredPolicies">
+
+            <td>
+              <strong>{{ item.leaveTypeName }}</strong>
+              <small class="code-label">{{ item.leaveTypeCode }}</small>
+            </td>
+
+            <td>
+              <span class="target-label">
+                {{ getTargetDescription(item) }}
+              </span>
+              <small>
+                {{
+                  item.employeeId !== null && item.employeeId !== undefined
+                    ? 'Individual override'
+                    : 'Employment category'
+                }}
+              </small>
+            </td>
+
+            <td>
+              <strong>{{ item.annualEntitlementDays | number:'1.0-3' }}</strong>
+              <small>days per year</small>
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [ngClass]="item.accruesMonthly ? 'active' : 'inactive'">
+                {{ item.accruesMonthly ? 'Monthly' : 'No monthly accrual' }}
+              </span>
+              <small *ngIf="item.accruesMonthly">
+                {{ item.annualEntitlementDays / 12 | number:'1.0-3' }} days
+              </small>
+            </td>
+
+            <td>
+              <span *ngIf="item.allowCarryForward" class="status-badge paid">
+                Allowed
+              </span>
+              <span *ngIf="!item.allowCarryForward" class="status-badge inactive">
+                Not allowed
+              </span>
+              <small *ngIf="item.allowCarryForward">
+                Max {{ item.maxCarryForwardDays }} days /
+                {{ item.carryForwardExpiryMonths }} months
+              </small>
+            </td>
+
+            <td>
+              {{ item.effectiveFrom | date:'dd MMM yyyy' }}
+              <small>
+                to
+                {{
+                  item.effectiveTo
+                    ? (item.effectiveTo | date:'dd MMM yyyy')
+                    : 'No end date'
+                }}
+              </small>
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [ngClass]="item.isActive ? 'active' : 'inactive'">
+                {{ item.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+
+                <button type="button"
+                        class="edit-button"
+                        (click)="openEditForm(item)">
+                  Edit
+                </button>
+
+                <button type="button"
+                        class="deactivate-button"
+                        *ngIf="item.isActive"
+                        (click)="deactivatePolicy(item)">
+                  Deactivate
+                </button>
+
+                <button type="button"
+                        class="activate-button"
+                        *ngIf="!item.isActive"
+                        (click)="activatePolicy(item)">
+                  Reactivate
+                </button>
+
+              </div>
+            </td>
+
+          </tr>
+
+          <tr *ngIf="filteredPolicies.length === 0">
+            <td colspan="8" class="empty-state">
+              No entitlement policies found.
+              Use Add Entitlement Policy to configure one.
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+
+  </section>
+
+  <!-- ADD / EDIT MODAL -->
+  <div class="modal-overlay" *ngIf="showForm">
+
+    <div class="policy-modal">
+
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">LEAVE CONFIGURATION</span>
+          <h2>
+            {{ isEditing ? 'Edit Entitlement Policy' : 'Add Entitlement Policy' }}
+          </h2>
+          <p>Configure the leave entitlement and applicable employee group.</p>
+        </div>
+
+        <button type="button"
+                class="close-button"
+                (click)="closeForm()">
+          ×
+        </button>
+      </div>
+
+      <div class="notice error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <form (ngSubmit)="savePolicy()" #policyForm="ngForm">
+
+        <div class="form-section">
+          <h3>1. Leave Type and Policy Target</h3>
+
+          <div class="field">
+            <label>Paid Leave Type <span>*</span></label>
+            <select name="leaveTypeId"
+                    [(ngModel)]="form.leaveTypeId"
+                    (ngModelChange)="onLeaveTypeChange()"
+                    required>
+              <option [ngValue]="null">Select leave type</option>
+              <option *ngFor="let item of leaveTypes" [ngValue]="item.id">
+                {{ item.name }} ({{ item.code }})
+              </option>
+            </select>
+            <small>Only active paid leave types are available.</small>
+          </div>
+
+          <div class="field">
+            <label>Policy Applies To <span>*</span></label>
+            <select name="targetType"
+                    [(ngModel)]="form.targetType"
+                    (ngModelChange)="onTargetTypeChange()">
+              <option value="employment">Employment Category</option>
+              <option value="employee">Individual Employee Override</option>
+            </select>
+          </div>
+
+          <div class="field" *ngIf="form.targetType === 'employment'">
+            <label>Employment Category <span>*</span></label>
+            <select name="employmentType"
+                    [(ngModel)]="form.employmentType"
+                    required>
+              <option *ngFor="let type of employmentTypes"
+                      [ngValue]="type.value">
+                {{ type.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="field" *ngIf="form.targetType === 'employee'">
+            <label>Employee <span>*</span></label>
+            <select name="employeeId"
+                    [(ngModel)]="form.employeeId"
+                    required>
+              <option [ngValue]="null">Select employee</option>
+              <option *ngFor="let employee of employees" [ngValue]="employee.id">
+                {{ employee.employeeNumber }} -
+                {{ getEmployeeName(employee) }}
+              </option>
+            </select>
+            <small>
+              This policy overrides the employee's employment-category policy.
+            </small>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>2. Annual Entitlement and Accrual</h3>
+
+          <div class="field">
+            <label>Annual Entitlement (Days) <span>*</span></label>
+            <input type="number"
+                   name="annualEntitlementDays"
+                   [(ngModel)]="form.annualEntitlementDays"
+                   min="0"
+                   max="366"
+                   step="0.001"
+                   required>
+            <small>
+              Monthly accrual:
+              {{ form.annualEntitlementDays / 12 | number:'1.0-3' }}
+              days, when monthly accrual is enabled.
+            </small>
+          </div>
+
+          <div class="option-card">
+            <label class="checkbox-option">
+              <input type="checkbox"
+                     name="accruesMonthly"
+                     [(ngModel)]="form.accruesMonthly">
+
+              <span>
+                <strong>Accrues Monthly</strong>
+                <small>
+                  Employees earn one-twelfth of their annual entitlement
+                  after each completed month of service.
+                </small>
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h3>3. Carry-Forward Configuration</h3>
+
+          <div class="option-card">
+            <label class="checkbox-option">
+              <input type="checkbox"
+                     name="allowCarryForward"
+                     [(ngModel)]="form.allowCarryForward"
+                     [disabled]="!isAnnualLeaveSelected">
+
+              <span>
+                <strong>Allow Annual Leave Carry-Forward</strong>
+                <small>
+                  Permit eligible unused annual leave days to move into
+                  the next calendar year.
+                </small>
+              </span>
+            </label>
+          </div>
+
+          <div class="field-grid" *ngIf="form.allowCarryForward">
+
+            <div class="field">
+              <label>Maximum Carry-Forward Days</label>
+              <input type="number"
+                     name="maxCarryForwardDays"
+                     [(ngModel)]="form.maxCarryForwardDays"
+                     min="0.001"
+                     step="0.001"
+                     required>
+            </div>
+
+            <div class="field">
+              <label>Expiry Period (Months)</label>
+              <input type="number"
+                     name="carryForwardExpiryMonths"
+                     [(ngModel)]="form.carryForwardExpiryMonths"
+                     min="1"
+                     max="120"
+                     step="1"
+                     required>
+            </div>
+
+          </div>
+
+          <p class="information-note" *ngIf="!isAnnualLeaveSelected">
+            Carry-forward is configured for Annual Leave only.
+          </p>
+
+          <p class="information-note" *ngIf="isAnnualLeaveSelected && form.allowCarryForward">
+            The agreed default policy is a maximum of 10 days carried
+            forward, expiring after 18 months.
+          </p>
+        </div>
+
+        <div class="form-section">
+          <h3>4. Effective Dates</h3>
+
+          <div class="field-grid">
+
+            <div class="field">
+              <label>Effective From <span>*</span></label>
+              <input type="date"
+                     name="effectiveFrom"
+                     [(ngModel)]="form.effectiveFrom"
+                     required>
+            </div>
+
+            <div class="field">
+              <label>Effective To</label>
+              <input type="date"
+                     name="effectiveTo"
+                     [(ngModel)]="form.effectiveTo">
+              <small>Leave blank for an open-ended policy.</small>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-actions">
+
+          <button type="button"
+                  class="reset-button"
+                  (click)="closeForm()">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="primary-button"
+                  [disabled]="isSaving || policyForm.invalid">
+
+            {{
+              isSaving
+                ? 'Saving...'
+                : (isEditing ? 'Update Policy' : 'Save Policy')
+            }}
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>

@@ -1,0 +1,444 @@
+
+<div class="department-page">
+
+  <!-- Page heading -->
+  <header class="page-header">
+    <div class="heading-content">
+      <div class="breadcrumb">
+        <span>CLAMS HR</span>
+        <span class="breadcrumb-divider">/</span>
+        <span>Administration</span>
+        <span class="breadcrumb-divider">/</span>
+        <strong>Departments</strong>
+      </div>
+
+      <div class="heading-title">
+        <div class="heading-icon">
+          <span>▦</span>
+        </div>
+
+        <div>
+          <h1>Department Management</h1>
+          <p>Organise, manage and monitor your organisation's departments.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button class="refresh-button" type="button" (click)="refresh()">
+        <span>↻</span>
+        Refresh
+      </button>
+
+      <button class="add-button" type="button" (click)="openAddForm()">
+        <span>+</span>
+        Add Department
+      </button>
+    </div>
+  </header>
+
+  <!-- Notification -->
+  <div class="notification"
+       *ngIf="notification"
+       [class.success]="notificationType === 'success'"
+       [class.error]="notificationType === 'error'">
+
+    <span class="notification-icon">
+      {{ notificationType === 'success' ? '✓' : '!' }}
+    </span>
+
+    <span>{{ notification }}</span>
+
+    <button type="button" (click)="dismissNotification()">×</button>
+  </div>
+
+  <!-- Summary cards -->
+  <section class="summary-grid">
+
+    <article class="summary-card total-card">
+      <div class="summary-top">
+        <span class="summary-label">Total Departments</span>
+        <div class="summary-icon">▦</div>
+      </div>
+
+      <div class="summary-value">{{ totalCount }}</div>
+      <div class="summary-description">Registered departments</div>
+    </article>
+
+    <article class="summary-card active-card">
+      <div class="summary-top">
+        <span class="summary-label">Active Departments</span>
+        <div class="summary-icon">✓</div>
+      </div>
+
+      <div class="summary-value">{{ activeCount }}</div>
+      <div class="summary-description">Active on this page</div>
+    </article>
+
+    <article class="summary-card inactive-card">
+      <div class="summary-top">
+        <span class="summary-label">Inactive Departments</span>
+        <div class="summary-icon">Ⅱ</div>
+      </div>
+
+      <div class="summary-value">{{ inactiveCount }}</div>
+      <div class="summary-description">Inactive on this page</div>
+    </article>
+
+    <article class="summary-card workforce-card">
+      <div class="summary-top">
+        <span class="summary-label">Employees</span>
+        <div class="summary-icon">♙</div>
+      </div>
+
+      <div class="summary-value">{{ employeeCount }}</div>
+      <div class="summary-description">Employees in listed departments</div>
+    </article>
+
+  </section>
+
+  <!-- Department records -->
+  <section class="records-card">
+
+    <div class="records-heading">
+      <div>
+        <h2>Department Directory</h2>
+        <p>View and manage all registered departments.</p>
+      </div>
+
+      <span class="records-count">
+        {{ totalCount }} Records
+      </span>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-panel">
+
+      <div class="search-field">
+        <span class="search-icon">⌕</span>
+
+        <input type="text"
+               placeholder="Search by department name or code..."
+               [(ngModel)]="searchTerm"
+               (keyup.enter)="searchDepartments()">
+      </div>
+
+      <div class="status-filter">
+        <label for="departmentStatus">Department Status</label>
+
+        <select id="departmentStatus"
+                [(ngModel)]="statusFilter"
+                (change)="applyStatusFilter()">
+
+          <option value="all">All Departments</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+
+      <button class="search-button"
+              type="button"
+              (click)="searchDepartments()">
+        Search
+      </button>
+
+      <button class="clear-button"
+              type="button"
+              (click)="clearFilters()">
+        Clear
+      </button>
+
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrapper">
+
+      <table>
+        <thead>
+          <tr>
+            <th>DEPARTMENT</th>
+            <th>DEPARTMENT CODE</th>
+            <th>EMPLOYEES</th>
+            <th>POSITIONS</th>
+            <th>STATUS</th>
+            <th class="actions-heading">ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngIf="loading">
+            <td colspan="6" class="loading-cell">
+              <div class="loader"></div>
+              Loading departments...
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && departments.length === 0">
+            <td colspan="6" class="empty-cell">
+              <div class="empty-icon">▦</div>
+              <strong>No departments found</strong>
+              <span>Try changing your search or add a new department.</span>
+
+              <button type="button" (click)="openAddForm()">
+                + Add Department
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngFor="let department of departments">
+
+            <td>
+              <div class="department-name-cell">
+                <div class="department-avatar">
+                  {{ department.name.charAt(0).toUpperCase() }}
+                </div>
+
+                <div class="department-name-details">
+                  <strong>{{ department.name }}</strong>
+                  <span>
+                    {{ department.description || 'No description provided' }}
+                  </span>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <span class="department-code">{{ department.code }}</span>
+            </td>
+
+            <td>
+              <span class="count-value">{{ department.employeeCount ?? 0 }}</span>
+            </td>
+
+            <td>
+              <span class="count-value">{{ department.positionCount ?? 0 }}</span>
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [class.status-active]="department.isActive"
+                    [class.status-inactive]="!department.isActive">
+
+                <span class="status-dot"></span>
+                {{ department.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+
+                <button class="action-button edit-action"
+                        type="button"
+                        title="Edit department"
+                        (click)="openEditForm(department)">
+                  Edit
+                </button>
+
+                <button *ngIf="department.isActive"
+                        class="action-button deactivate-action"
+                        type="button"
+                        title="Deactivate department"
+                        (click)="deactivateDepartment(department)">
+                  Deactivate
+                </button>
+
+                <button *ngIf="!department.isActive"
+                        class="action-button activate-action"
+                        type="button"
+                        title="Activate department"
+                        (click)="activateDepartment(department)">
+                  Activate
+                </button>
+
+              </div>
+            </td>
+
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-panel">
+
+      <div class="pagination-info">
+        Showing
+        <strong>{{ firstRecord }}</strong>
+        to
+        <strong>{{ lastRecord }}</strong>
+        of
+        <strong>{{ totalCount }}</strong>
+        departments
+      </div>
+
+      <div class="pagination-controls">
+
+        <button type="button"
+                class="page-button"
+                [disabled]="currentPage <= 1 || loading"
+                (click)="changePage(currentPage - 1)">
+          Previous
+        </button>
+
+        <button *ngFor="let page of pageNumbers"
+                type="button"
+                class="page-number"
+                [class.current-page]="page === currentPage"
+                [disabled]="loading"
+                (click)="changePage(page)">
+          {{ page }}
+        </button>
+
+        <button type="button"
+                class="page-button"
+                [disabled]="currentPage >= totalPages || loading"
+                (click)="changePage(currentPage + 1)">
+          Next
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- Add/Edit Department Modal -->
+  <div class="modal-backdrop"
+       *ngIf="showForm"
+       (click)="closeForm()">
+
+    <section class="department-modal"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="departmentModalTitle"
+             (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+
+        <div class="modal-heading">
+          <div class="modal-icon">▦</div>
+
+          <div>
+            <h2 id="departmentModalTitle">
+              {{ isEditing ? 'Edit Department' : 'Register Department' }}
+            </h2>
+
+            <p>
+              {{
+                isEditing
+                  ? 'Update the department information below.'
+                  : 'Enter the details to register a new department.'
+              }}
+            </p>
+          </div>
+        </div>
+
+        <button class="modal-close"
+                type="button"
+                [disabled]="saving"
+                (click)="closeForm()">
+          ×
+        </button>
+
+      </div>
+
+      <form #departmentForm="ngForm" (ngSubmit)="saveDepartment(departmentForm)">
+
+        <div class="modal-body">
+
+          <div class="form-group">
+            <label for="departmentName">
+              Department Name <span>*</span>
+            </label>
+
+            <input id="departmentName"
+                   name="name"
+                   type="text"
+                   [(ngModel)]="form.name"
+                   #name="ngModel"
+                   placeholder="e.g. Human Resources"
+                   maxlength="150"
+                   required>
+
+            <small class="validation-error" *ngIf="name.invalid && name.touched">
+              Please enter the department name.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="departmentCode">
+              Department Code <span>*</span>
+            </label>
+
+            <input id="departmentCode"
+                   name="code"
+                   type="text"
+                   [(ngModel)]="form.code"
+                   #code="ngModel"
+                   placeholder="e.g. HR"
+                   maxlength="50"
+                   required>
+
+            <small class="field-hint">
+              Use a short, unique code for easy identification.
+            </small>
+
+            <small class="validation-error" *ngIf="code.invalid && code.touched">
+              Please enter a department code.
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="departmentDescription">
+              Description
+              <span class="optional-label">Optional</span>
+            </label>
+
+            <textarea id="departmentDescription"
+                      name="description"
+                      [(ngModel)]="form.description"
+                      placeholder="Briefly describe the department's responsibilities..."
+                      rows="4"
+                      maxlength="500"></textarea>
+
+            <div class="character-count">
+              {{ form.description.length }}/500 characters
+            </div>
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+
+          <button type="button"
+                  class="cancel-button"
+                  [disabled]="saving"
+                  (click)="closeForm()">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="save-button"
+                  [disabled]="saving">
+
+            <span *ngIf="!saving">
+              {{ isEditing ? 'Save Changes' : 'Register Department' }}
+            </span>
+
+            <span *ngIf="saving">
+              Saving...
+            </span>
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+  </div>
+
+</div>

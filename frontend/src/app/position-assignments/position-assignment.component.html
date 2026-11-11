@@ -1,0 +1,403 @@
+<div class="assignment-page">
+
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">CLAMS HR / Administration</span>
+      <h1>Position Assignments</h1>
+      <p>Manage employee placements, transfers and position history.</p>
+    </div>
+
+    <div class="heading-actions">
+      <button class="btn btn-light" (click)="refresh()">
+        ↻ Refresh
+      </button>
+      <button class="btn btn-primary" (click)="openAssignModal()">
+        + Assign Employee
+      </button>
+    </div>
+  </div>
+
+  <div class="notification success" *ngIf="message">
+    {{ message }}
+    <button type="button" (click)="clearMessages()">×</button>
+  </div>
+
+  <div class="notification error" *ngIf="errorMessage">
+    {{ errorMessage }}
+    <button type="button" (click)="clearMessages()">×</button>
+  </div>
+
+  <section class="summary-grid">
+    <div class="summary-card">
+      <div class="summary-icon current-icon">✓</div>
+      <div>
+        <span>Current Assignments</span>
+        <strong>{{ currentCount }}</strong>
+        <small>Employees currently placed</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon scheduled-icon">◷</div>
+      <div>
+        <span>Scheduled Assignments</span>
+        <strong>{{ scheduledCount }}</strong>
+        <small>Future placements and transfers</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon completed-icon">↗</div>
+      <div>
+        <span>Completed Assignments</span>
+        <strong>{{ completedCount }}</strong>
+        <small>Previous position records</small>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="summary-icon vacant-icon">▣</div>
+      <div>
+        <span>Vacant Posts</span>
+        <strong>{{ vacantPosts }}</strong>
+        <small>Vacancies across active positions</small>
+      </div>
+    </div>
+  </section>
+
+  <section class="content-card">
+
+    <div class="section-heading">
+      <div>
+        <h2>Assignment Register</h2>
+        <p>View current placements and employee assignment history.</p>
+      </div>
+      <span class="record-count">
+        {{ filteredAssignments.length }} records shown
+      </span>
+    </div>
+
+    <div class="filter-bar">
+      <div class="search-box">
+        <span>⌕</span>
+        <input type="text"
+               [(ngModel)]="searchTerm"
+               placeholder="Search employee, position or department..." />
+      </div>
+
+      <select [(ngModel)]="statusFilter">
+        <option value="all">All Assignment Statuses</option>
+        <option value="Current">Current</option>
+        <option value="Scheduled">Scheduled</option>
+        <option value="Completed">Completed</option>
+      </select>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>EMPLOYEE</th>
+            <th>POSITION</th>
+            <th>DEPARTMENT</th>
+            <th>START DATE</th>
+            <th>END DATE</th>
+            <th>STATUS</th>
+            <th class="action-column">ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngIf="loading">
+            <td colspan="7" class="table-message">
+              Loading position assignments...
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading && filteredAssignments.length === 0">
+            <td colspan="7" class="table-message">
+              No position assignments found.
+            </td>
+          </tr>
+
+          <tr *ngFor="let assignment of filteredAssignments">
+            <td>
+              <div class="employee-cell">
+                <div class="employee-avatar">
+                  {{ assignment.employeeName.charAt(0) }}
+                </div>
+                <div>
+                  <strong>{{ assignment.employeeName }}</strong>
+                  <small>{{ assignment.employeeNumber }}</small>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="position-cell">
+                <strong>{{ assignment.positionTitle }}</strong>
+                <small>{{ assignment.positionCode }}</small>
+              </div>
+            </td>
+
+            <td>{{ assignment.departmentName }}</td>
+
+            <td>{{ assignment.startDate | date:'dd MMM yyyy' }}</td>
+
+            <td>
+              <span *ngIf="assignment.endDate">
+                {{ assignment.endDate | date:'dd MMM yyyy' }}
+              </span>
+              <span class="muted" *ngIf="!assignment.endDate">—</span>
+            </td>
+
+            <td>
+              <span class="status-badge" [ngClass]="getStatusClass(assignment.status)">
+                {{ assignment.status }}
+              </span>
+            </td>
+
+            <td class="action-column">
+              <div class="table-actions" *ngIf="assignment.status === 'Current'">
+                <button class="action-button transfer-action"
+                        type="button"
+                        (click)="openTransferModal(assignment)"
+                        title="Transfer employee">
+                  Transfer
+                </button>
+
+                <button class="action-button end-action"
+                        type="button"
+                        (click)="openEndModal(assignment)"
+                        title="End assignment">
+                  End
+                </button>
+              </div>
+
+              <span class="muted"
+                    *ngIf="assignment.status !== 'Current'">
+                —
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-footer">
+      <span>
+        Showing {{ filteredAssignments.length }} of
+        {{ assignments.length }} loaded assignment records
+      </span>
+      <span>Maximum 100 records loaded per refresh</span>
+    </div>
+
+  </section>
+
+  <section class="information-panel">
+    <div class="information-icon">i</div>
+    <div>
+      <strong>Assignment management rules</strong>
+      <p>
+        An employee can only have one current or scheduled assignment at a
+        time. Initial assignments must match the employee's department.
+        Transfers can move employees to positions in another department,
+        subject to available approved headcount. Completed assignments remain
+        in the register as part of the employee's history.
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<!-- ASSIGNMENT MODAL -->
+<div class="modal-backdrop" *ngIf="modalMode">
+  <div class="modal">
+
+    <div class="modal-header">
+      <div>
+        <span class="eyebrow">CLAMS HR / Position Management</span>
+        <h2>{{ getModalTitle() }}</h2>
+      </div>
+
+      <button class="close-button"
+              type="button"
+              (click)="closeModal()"
+              [disabled]="saving">
+        ×
+      </button>
+    </div>
+
+    <div class="modal-body">
+
+      <div class="notification error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <!-- INITIAL ASSIGNMENT -->
+      <ng-container *ngIf="modalMode === 'assign'">
+
+        <div class="form-group">
+          <label>Employee <span>*</span></label>
+
+          <select [(ngModel)]="form.employeeId"
+                  (ngModelChange)="onEmployeeChange()">
+            <option value="">Select an active employee</option>
+            <option *ngFor="let employee of activeEmployeesWithoutAssignment"
+                    [value]="employee.id">
+              {{ employee.employeeNumber }} —
+              {{ employee.fullName || (employee.firstName + ' ' + employee.lastName) }}
+              ({{ employee.departmentName }})
+            </option>
+          </select>
+
+          <small>
+            Only active employees without a current or scheduled assignment
+            are listed.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>Position <span>*</span></label>
+
+          <select [(ngModel)]="form.positionId">
+            <option value="">Select an available position</option>
+            <option *ngFor="let position of assignablePositions"
+                    [value]="position.id">
+              {{ position.code }} — {{ position.title }}
+              ({{ position.vacantHeadcount }} vacant)
+            </option>
+          </select>
+
+          <small>
+            Only active positions with vacancies in the employee's department
+            are listed.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>Assignment Start Date <span>*</span></label>
+          <input type="date" [(ngModel)]="form.startDate" />
+        </div>
+
+        <div class="form-group">
+          <label>Assignment Reason</label>
+          <textarea rows="3"
+                    [(ngModel)]="form.changeReason"
+                    placeholder="Enter the reason for this assignment..."></textarea>
+        </div>
+
+      </ng-container>
+
+      <!-- TRANSFER -->
+      <ng-container *ngIf="modalMode === 'transfer'">
+
+        <div class="selected-employee">
+          <span>EMPLOYEE</span>
+          <strong>{{ selectedAssignment?.employeeName }}</strong>
+          <small>{{ selectedAssignment?.employeeNumber }}</small>
+        </div>
+
+        <div class="current-position">
+          <span>Current Position</span>
+          <strong>{{ selectedAssignment?.positionTitle }}</strong>
+          <small>{{ selectedAssignment?.departmentName }}</small>
+        </div>
+
+        <div class="form-group">
+          <label>Destination Position <span>*</span></label>
+
+          <select [(ngModel)]="form.positionId">
+            <option value="">Select destination position</option>
+            <option *ngFor="let position of transferPositions"
+                    [value]="position.id">
+              {{ position.code }} — {{ position.title }}
+              ({{ position.departmentName }}, {{ position.vacantHeadcount }} vacant)
+            </option>
+          </select>
+
+          <small>
+            Only active positions with available approved headcount are listed.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>Transfer Effective Date <span>*</span></label>
+          <input type="date" [(ngModel)]="form.startDate" />
+          <small>
+            A future date schedules the transfer. A date today or earlier
+            processes it immediately, subject to backend validation.
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label>Transfer Reason <span>*</span></label>
+          <textarea rows="3"
+                    [(ngModel)]="form.changeReason"
+                    placeholder="Enter the reason for this transfer..."></textarea>
+        </div>
+
+      </ng-container>
+
+      <!-- END ASSIGNMENT -->
+      <ng-container *ngIf="modalMode === 'end'">
+
+        <div class="selected-employee">
+          <span>EMPLOYEE</span>
+          <strong>{{ selectedAssignment?.employeeName }}</strong>
+          <small>{{ selectedAssignment?.employeeNumber }}</small>
+        </div>
+
+        <div class="current-position">
+          <span>Current Position</span>
+          <strong>{{ selectedAssignment?.positionTitle }}</strong>
+          <small>{{ selectedAssignment?.departmentName }}</small>
+        </div>
+
+        <div class="form-group">
+          <label>Assignment End Date <span>*</span></label>
+          <input type="date" [(ngModel)]="form.endDate" />
+        </div>
+
+        <div class="form-group">
+          <label>Reason for Ending Assignment <span>*</span></label>
+          <textarea rows="3"
+                    [(ngModel)]="form.endReason"
+                    placeholder="Explain why this assignment is ending..."></textarea>
+        </div>
+
+        <div class="warning-panel">
+          Ending this assignment will mark it as completed. The employee's
+          assignment history will remain available in the register.
+        </div>
+
+      </ng-container>
+
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-light"
+              type="button"
+              (click)="closeModal()"
+              [disabled]="saving">
+        Cancel
+      </button>
+
+      <button class="btn btn-primary"
+              type="button"
+              (click)="saveAssignment()"
+              [disabled]="saving">
+        {{
+          saving
+            ? 'Processing...'
+            : modalMode === 'assign'
+              ? 'Save Assignment'
+              : modalMode === 'transfer'
+                ? 'Process Transfer'
+                : 'End Assignment'
+        }}
+      </button>
+    </div>
+
+  </div>
+</div>

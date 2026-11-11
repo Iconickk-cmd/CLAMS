@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CLAMS.API/CLAMS.API.csproj" />
+  <Project Path="CLAMS.Application/CLAMS.Application.csproj" />
+  <Project Path="CLAMS.Domain/CLAMS.Domain.csproj" />
+  <Project Path="CLAMS.Infrastructure/CLAMS.Infrastructure.csproj" />
+</Solution>

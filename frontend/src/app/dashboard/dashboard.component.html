@@ -1,0 +1,267 @@
+<div class="dashboard-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="brand-icon">C</div>
+
+      <div>
+        <h2>CLAMS HR</h2>
+        <span>Management Portal</span>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="menu-heading">MAIN MENU</div>
+
+    <nav class="sidebar-menu">
+
+      <a routerLink="/dashboard"
+         routerLinkActive="active"
+         [routerLinkActiveOptions]="{ exact: true }">
+        <span class="menu-icon">▦</span>
+        Dashboard
+      </a>
+
+      <a routerLink="/employees"
+         routerLinkActive="active">
+        <span class="menu-icon">♙</span>
+        Employees
+      </a>
+
+      <a routerLink="/departments"
+         routerLinkActive="active">
+        <span class="menu-icon">▤</span>
+        Departments
+      </a>
+
+      <a routerLink="/positions"
+         routerLinkActive="active">
+        <span class="menu-icon">▣</span>
+        Positions
+      </a>
+
+      <a routerLink="/position-assignments"
+         routerLinkActive="active">
+        <span class="menu-icon">⇄</span>
+        Position Assignments
+      </a>
+
+      <a routerLink="/leave-types"
+         routerLinkActive="active">
+        <span class="menu-icon">◷</span>
+        Leave Types
+      </a>
+
+      <a routerLink="/leave-entitlement-policies"
+         routerLinkActive="active">
+        <span class="menu-icon">▧</span>
+        Leave Entitlement Policies
+      </a>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+
+      <div class="sidebar-divider"></div>
+
+      <button class="logout-button" (click)="logout()">
+        <span class="menu-icon">↪</span>
+        Sign Out
+      </button>
+
+    </div>
+
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Top Bar -->
+    <header class="topbar">
+
+      <div>
+        <h1>Dashboard</h1>
+        <p>Human Resource Management Overview</p>
+      </div>
+
+      <div class="profile-section">
+
+        <div class="profile-avatar">
+          {{ userName.charAt(0).toUpperCase() }}
+        </div>
+
+        <div class="profile-details">
+          <strong>{{ userName }}</strong>
+          <span>{{ userRole }}</span>
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- Dashboard Body -->
+    <section class="dashboard-content">
+
+      <div class="welcome-banner">
+
+        <div>
+          <h2>Welcome back, {{ userName }}!</h2>
+
+          <p>
+            Here is an overview of your CLAMS Human Resource operations.
+          </p>
+        </div>
+
+        <div class="welcome-symbol">HR</div>
+
+      </div>
+
+      <div class="section-heading">
+
+        <div>
+          <h2>Workforce Overview</h2>
+          <p>Live information from the CLAMS HR database</p>
+        </div>
+
+        <button class="refresh-button"
+                (click)="loadDashboard()"
+                [disabled]="isLoading">
+          ↻ Refresh
+        </button>
+
+      </div>
+
+      @if (isLoading) {
+
+      <div class="loading-message">
+        Loading dashboard information...
+      </div>
+
+      } @else {
+
+      @if (hasLoadError) {
+      <div class="error-message">
+        Some dashboard information could not be loaded.
+        Please check that the backend API is running and refresh.
+      </div>
+      }
+
+      <!-- Statistics -->
+      <div class="stats-grid">
+
+        <div class="stat-card employees-card">
+          <div class="stat-icon">♙</div>
+
+          <div class="stat-info">
+            <span>Total Employees</span>
+            <h2>{{ stats.totalEmployees }}</h2>
+            <small>Registered employees</small>
+          </div>
+        </div>
+
+        <div class="stat-card active-card">
+          <div class="stat-icon">✓</div>
+
+          <div class="stat-info">
+            <span>Active Employees</span>
+            <h2>{{ stats.activeEmployees }}</h2>
+            <small>Currently active</small>
+          </div>
+        </div>
+
+        <div class="stat-card departments-card">
+          <div class="stat-icon">▤</div>
+
+          <div class="stat-info">
+            <span>Departments</span>
+            <h2>{{ stats.departments }}</h2>
+            <small>Registered departments</small>
+          </div>
+        </div>
+
+        <div class="stat-card positions-card">
+          <div class="stat-icon">▣</div>
+
+          <div class="stat-info">
+            <span>Positions</span>
+            <h2>{{ stats.positions }}</h2>
+            <small>Established positions</small>
+          </div>
+        </div>
+
+        <div class="stat-card assignments-card">
+          <div class="stat-icon">⇄</div>
+
+          <div class="stat-info">
+            <span>Current Assignments</span>
+            <h2>{{ stats.currentAssignments }}</h2>
+            <small>Active position assignments</small>
+          </div>
+        </div>
+
+      </div>
+
+      }
+
+      <!-- Quick Access -->
+      <div class="section-heading quick-heading">
+
+        <div>
+          <h2>Quick Access</h2>
+          <p>Navigate to your HR management modules</p>
+        </div>
+
+      </div>
+
+      <div class="quick-access-grid">
+
+        <a routerLink="/employees" class="quick-card">
+          <span class="quick-icon">♙</span>
+          <strong>Employee Management</strong>
+          <span>Manage employee records</span>
+        </a>
+
+        <a routerLink="/departments" class="quick-card">
+          <span class="quick-icon">▤</span>
+          <strong>Department Management</strong>
+          <span>Manage organizational departments</span>
+        </a>
+
+        <a routerLink="/positions" class="quick-card">
+          <span class="quick-icon">▣</span>
+          <strong>Position Management</strong>
+          <span>Manage approved positions</span>
+        </a>
+
+        <a routerLink="/position-assignments" class="quick-card">
+          <span class="quick-icon">⇄</span>
+          <strong>Position Assignments</strong>
+          <span>Manage employee assignments</span>
+        </a>
+
+        <a routerLink="/leave-types" class="quick-card">
+          <span class="quick-icon">◷</span>
+          <strong>Leave Types Management</strong>
+          <span>Configure available employee leave types</span>
+        </a>
+
+        <a routerLink="/leave-entitlement-policies" class="quick-card">
+          <span class="quick-icon">▧</span>
+          <strong>Leave Entitlement Policies</strong>
+          <span>Configure employee leave entitlement rules</span>
+        </a>
+
+      </div>
+
+      <footer class="dashboard-footer">
+        CLAMS HR | Human Resource Management System
+      </footer>
+
+    </section>
+
+  </main>
+
+</div>

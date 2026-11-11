@@ -1,0 +1,24 @@
+
+<div class="app-shell">
+
+  <!-- Shared navigation for all modules -->
+  <header class="global-page-navigation"
+          *ngIf="showBackToDashboard">
+
+    <a routerLink="/dashboard"
+       class="back-dashboard-link"
+       aria-label="Back to Dashboard">
+
+      <span class="back-arrow">←</span>
+      <span>Back to Dashboard</span>
+
+    </a>
+
+  </header>
+
+  <!-- Application pages -->
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+
+</div>

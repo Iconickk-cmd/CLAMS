@@ -1,0 +1,668 @@
+
+<div class="employee-page">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">HUMAN RESOURCE MANAGEMENT</span>
+      <h1>Employee Management</h1>
+      <p>Register, manage and monitor CLAMS employees.</p>
+    </div>
+
+    <button class="primary-button" (click)="openAddForm()">
+      + Add New Employee
+    </button>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-card">
+    <div class="summary-icon">HR</div>
+    <div>
+      <span>Total Registered Employees</span>
+      <strong>{{ totalCount }}</strong>
+    </div>
+  </div>
+
+  <!-- NOTIFICATIONS -->
+  <div class="notice success" *ngIf="message">
+    {{ message }}
+    <button type="button" (click)="message = ''">×</button>
+  </div>
+
+  <div class="notice error" *ngIf="errorMessage && !showForm">
+    {{ errorMessage }}
+    <button type="button" (click)="errorMessage = ''">×</button>
+  </div>
+
+  <!-- SEARCH AND FILTERS -->
+  <section class="filter-card">
+    <div class="section-heading">
+      <div>
+        <h2>Employee Register</h2>
+        <p>Search and filter employee records.</p>
+      </div>
+    </div>
+
+    <div class="filter-grid">
+
+      <div class="field search-field">
+        <label>Search Employees</label>
+        <input type="text"
+               [(ngModel)]="searchTerm"
+               (keyup.enter)="searchEmployees()"
+               placeholder="Name, employee number, ID or email">
+      </div>
+
+      <div class="field">
+        <label>Department</label>
+        <select [(ngModel)]="selectedDepartment"
+                (change)="applyFilters()">
+          <option value="">All Departments</option>
+          <option *ngFor="let department of departments"
+                  [value]="department.id">
+            {{ department.name }}
+          </option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Employment Status</label>
+        <select [(ngModel)]="selectedStatus"
+                (change)="applyFilters()">
+          <option value="">All Statuses</option>
+          <option value="1">Active</option>
+          <option value="2">On Leave</option>
+          <option value="3">Suspended</option>
+          <option value="4">Separated</option>
+        </select>
+      </div>
+
+      <div class="filter-actions">
+        <button type="button"
+                class="primary-button"
+                (click)="searchEmployees()">
+          Search
+        </button>
+
+        <button type="button"
+                class="reset-button"
+                (click)="clearFilters()">
+          Clear
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- EMPLOYEE TABLE -->
+  <section class="table-card">
+
+    <div class="table-heading">
+      <div>
+        <h2>Employee Records</h2>
+        <p>
+          Showing {{ firstRecord }}–{{ lastRecord }}
+          of {{ totalCount }} employees
+        </p>
+      </div>
+
+      <button type="button"
+              class="refresh-button"
+              (click)="loadEmployees()">
+        ↻ Refresh
+      </button>
+    </div>
+
+    <div class="loading-state" *ngIf="isLoading">
+      Loading employee records...
+    </div>
+
+    <div class="error-state" *ngIf="hasError && !isLoading">
+      <p>Unable to retrieve employee records.</p>
+      <button type="button"
+              class="primary-button"
+              (click)="loadEmployees()">
+        Try Again
+      </button>
+    </div>
+
+    <div class="table-wrapper" *ngIf="!isLoading && !hasError">
+
+      <table>
+        <thead>
+          <tr>
+            <th>EMPLOYEE</th>
+            <th>DEPARTMENT</th>
+            <th>POSITION</th>
+            <th>EMPLOYMENT TYPE</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr *ngFor="let employee of employees">
+
+            <td>
+              <div class="employee-info">
+
+                <div class="avatar">
+                  {{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}
+                </div>
+
+                <div class="employee-details">
+                  <strong>{{ employee.fullName }}</strong>
+                  <span>{{ employee.employeeNumber }}</span>
+                </div>
+
+              </div>
+            </td>
+
+            <td>
+              {{ employee.departmentName || 'Not assigned' }}
+            </td>
+
+            <td>
+              {{ employee.currentPositionTitle || 'Not assigned' }}
+            </td>
+
+            <td>
+              {{ getEmploymentTypeName(employee.employmentType) }}
+            </td>
+
+            <td>
+              <span class="status-badge"
+                    [ngClass]="{
+                  'active': employee.employmentStatus === 1,
+                  'leave': employee.employmentStatus === 2,
+                  'suspended': employee.employmentStatus === 3,
+                  'separated': employee.employmentStatus === 4
+                }">
+                {{ getStatusName(employee.employmentStatus) }}
+              </span>
+            </td>
+
+            <td>
+              <div class="action-buttons">
+
+                <button type="button"
+                        class="view-button"
+                        (click)="viewEmployee(employee)">
+                  View
+                </button>
+
+                <button type="button"
+                        class="edit-button"
+                        (click)="openEditForm(employee)">
+                  Edit
+                </button>
+
+                <button type="button"
+                        *ngIf="employee.employmentStatus === 1 || employee.employmentStatus === 2"
+                        class="suspend-button"
+                        (click)="suspendEmployee(employee)">
+                  Suspend
+                </button>
+
+                <button type="button"
+                        *ngIf="employee.employmentStatus === 3"
+                        class="reactivate-button"
+                        (click)="reactivateEmployee(employee)">
+                  Reactivate
+                </button>
+
+              </div>
+            </td>
+
+          </tr>
+
+          <tr *ngIf="employees.length === 0">
+            <td colspan="6" class="empty-state">
+              No employee records found.
+            </td>
+          </tr>
+
+        </tbody>
+      </table>
+
+    </div>
+
+    <!-- PAGINATION -->
+    <div class="pagination"
+         *ngIf="!isLoading && !hasError && totalCount > 0">
+
+      <span>Page {{ page }} of {{ totalPages }}</span>
+
+      <div>
+        <button type="button"
+                [disabled]="page <= 1"
+                (click)="changePage(page - 1)">
+          Previous
+        </button>
+
+        <button type="button"
+                [disabled]="page >= totalPages"
+                (click)="changePage(page + 1)">
+          Next
+        </button>
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- EMPLOYEE DETAILS PROFILE -->
+  <div class="modal-overlay" *ngIf="showDetails">
+
+    <div class="employee-modal details-modal">
+
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">EMPLOYEE PROFILE</span>
+          <h2>Employee Details</h2>
+          <p>Complete employee information and employment record.</p>
+        </div>
+
+        <button type="button"
+                class="close-button"
+                (click)="closeDetails()">
+          ×
+        </button>
+      </div>
+
+      <div class="loading-state" *ngIf="isLoadingDetails">
+        Loading employee details...
+      </div>
+
+      <div class="notice error" *ngIf="detailsError">
+        {{ detailsError }}
+      </div>
+
+      <div *ngIf="selectedEmployee as employee">
+
+        <!-- PROFILE HEADING -->
+        <div class="profile-header">
+
+          <div class="profile-avatar">
+            {{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}
+          </div>
+
+          <div class="profile-heading-text">
+            <h2>{{ employee.fullName }}</h2>
+            <p>{{ employee.employeeNumber }}</p>
+            <span class="status-badge"
+                  [ngClass]="{
+                'active': employee.employmentStatus === 1,
+                'leave': employee.employmentStatus === 2,
+                'suspended': employee.employmentStatus === 3,
+                'separated': employee.employmentStatus === 4
+              }">
+              {{ getStatusName(employee.employmentStatus) }}
+            </span>
+          </div>
+
+        </div>
+
+        <!-- PERSONAL INFORMATION -->
+        <section class="details-section">
+          <h3>Personal Information</h3>
+
+          <div class="details-grid">
+
+            <div class="detail-item">
+              <span>First Name</span>
+              <strong>{{ employee.firstName || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Middle Name</span>
+              <strong>{{ employee.middleName || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Last Name</span>
+              <strong>{{ employee.lastName || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>National ID</span>
+              <strong>{{ employee.nationalId || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Gender</span>
+              <strong>{{ getGenderName(employee.gender) }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Date of Birth</span>
+              <strong>
+                {{ employee.dateOfBirth ? (employee.dateOfBirth | date:'dd MMM yyyy') : 'Not provided' }}
+              </strong>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- CONTACT INFORMATION -->
+        <section class="details-section">
+          <h3>Contact Information</h3>
+
+          <div class="details-grid">
+
+            <div class="detail-item">
+              <span>Email Address</span>
+              <strong>{{ employee.email || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Phone Number</span>
+              <strong>{{ employee.phoneNumber || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item full-width">
+              <span>Residential Address</span>
+              <strong>{{ employee.residentialAddress || 'Not provided' }}</strong>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- EMPLOYMENT INFORMATION -->
+        <section class="details-section">
+          <h3>Employment Information</h3>
+
+          <div class="details-grid">
+
+            <div class="detail-item">
+              <span>Employee Number</span>
+              <strong>{{ employee.employeeNumber }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Department</span>
+              <strong>{{ employee.departmentName || 'Not assigned' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Current Position</span>
+              <strong>{{ employee.currentPositionTitle || 'Not assigned' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Employment Type</span>
+              <strong>{{ getEmploymentTypeName(employee.employmentType) }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Employment Status</span>
+              <strong>{{ getStatusName(employee.employmentStatus) }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Date of Employment</span>
+              <strong>
+                {{ employee.dateOfEmployment ? (employee.dateOfEmployment | date:'dd MMM yyyy') : 'Not provided' }}
+              </strong>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- EMERGENCY CONTACT -->
+        <section class="details-section">
+          <h3>Emergency Contact Information</h3>
+
+          <div class="details-grid">
+
+            <div class="detail-item">
+              <span>Contact Name</span>
+              <strong>{{ employee.emergencyContactName || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Contact Phone</span>
+              <strong>{{ employee.emergencyContactPhone || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Relationship</span>
+              <strong>{{ employee.emergencyContactRelationship || 'Not provided' }}</strong>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+
+      <div class="modal-actions">
+        <button type="button"
+                class="reset-button"
+                (click)="closeDetails()">
+          Close
+        </button>
+
+        <button type="button"
+                class="primary-button"
+                *ngIf="selectedEmployee"
+                (click)="closeDetails(); openEditForm(selectedEmployee!)">
+          Edit Employee
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ADD / EDIT EMPLOYEE FORM -->
+  <div class="modal-overlay" *ngIf="showForm">
+
+    <div class="employee-modal">
+
+      <div class="modal-header">
+        <div>
+          <span class="eyebrow">EMPLOYEE INFORMATION</span>
+
+          <h2>
+            {{ isEditing ? 'Edit Employee' : 'Register New Employee' }}
+          </h2>
+
+          <p>
+            {{
+ isEditing
+              ? 'Update the employee information below.'
+              : 'Enter the details to register a new employee.'
+            }}
+          </p>
+        </div>
+
+        <button type="button"
+                class="close-button"
+                (click)="closeForm()">
+          ×
+        </button>
+      </div>
+
+      <div class="notice error" *ngIf="errorMessage">
+        {{ errorMessage }}
+      </div>
+
+      <form (ngSubmit)="saveEmployee()"
+            #employeeForm="ngForm">
+
+        <h3>Personal Information</h3>
+
+        <div class="form-grid">
+
+          <div class="field">
+            <label>First Name <span>*</span></label>
+            <input name="firstName"
+                   [(ngModel)]="form.firstName"
+                   required
+                   maxlength="100">
+          </div>
+
+          <div class="field">
+            <label>Middle Name</label>
+            <input name="middleName"
+                   [(ngModel)]="form.middleName"
+                   maxlength="100">
+          </div>
+
+          <div class="field">
+            <label>Last Name <span>*</span></label>
+            <input name="lastName"
+                   [(ngModel)]="form.lastName"
+                   required
+                   maxlength="100">
+          </div>
+
+          <div class="field">
+            <label>National ID</label>
+            <input name="nationalId"
+                   [(ngModel)]="form.nationalId"
+                   maxlength="30">
+          </div>
+
+          <div class="field">
+            <label>Gender</label>
+            <select name="gender" [(ngModel)]="form.gender">
+              <option [ngValue]="null">Select Gender</option>
+              <option [ngValue]="1">Male</option>
+              <option [ngValue]="2">Female</option>
+              <option [ngValue]="3">Other</option>
+              <option [ngValue]="4">Prefer Not to Say</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Date of Birth</label>
+            <input type="date"
+                   name="dateOfBirth"
+                   [(ngModel)]="form.dateOfBirth">
+          </div>
+
+          <div class="field">
+            <label>Email Address</label>
+            <input type="email"
+                   name="email"
+                   [(ngModel)]="form.email"
+                   maxlength="150">
+          </div>
+
+          <div class="field">
+            <label>Phone Number</label>
+            <input type="tel"
+                   name="phoneNumber"
+                   [(ngModel)]="form.phoneNumber"
+                   maxlength="30">
+          </div>
+
+          <div class="field full-width">
+            <label>Residential Address</label>
+            <textarea name="residentialAddress"
+                      [(ngModel)]="form.residentialAddress"
+                      maxlength="500"
+                      rows="2"></textarea>
+          </div>
+
+        </div>
+
+        <h3>Employment Information</h3>
+
+        <div class="form-grid">
+
+          <div class="field">
+            <label>Date of Employment <span>*</span></label>
+            <input type="date"
+                   name="dateOfEmployment"
+                   [(ngModel)]="form.dateOfEmployment"
+                   required>
+          </div>
+
+          <div class="field">
+            <label>Employment Type <span>*</span></label>
+            <select name="employmentType"
+                    [(ngModel)]="form.employmentType"
+                    required>
+              <option [ngValue]="1">Permanent</option>
+              <option [ngValue]="2">Contract</option>
+              <option [ngValue]="3">Temporary</option>
+              <option [ngValue]="4">Intern</option>
+              <option [ngValue]="5">Casual</option>
+            </select>
+          </div>
+
+          <div class="field full-width">
+            <label>Department <span>*</span></label>
+            <select name="departmentId"
+                    [(ngModel)]="form.departmentId"
+                    required>
+              <option [ngValue]="null">Select Department</option>
+              <option *ngFor="let department of departments"
+                      [ngValue]="department.id">
+                {{ department.name }}
+              </option>
+            </select>
+          </div>
+
+        </div>
+
+        <h3>Emergency Contact Information</h3>
+
+        <div class="form-grid">
+
+          <div class="field">
+            <label>Contact Name</label>
+            <input name="emergencyContactName"
+                   [(ngModel)]="form.emergencyContactName"
+                   maxlength="150">
+          </div>
+
+          <div class="field">
+            <label>Contact Phone</label>
+            <input type="tel"
+                   name="emergencyContactPhone"
+                   [(ngModel)]="form.emergencyContactPhone"
+                   maxlength="30">
+          </div>
+
+          <div class="field">
+            <label>Relationship</label>
+            <input name="emergencyContactRelationship"
+                   [(ngModel)]="form.emergencyContactRelationship"
+                   maxlength="100">
+          </div>
+
+        </div>
+
+        <div class="modal-actions">
+
+          <button type="button"
+                  class="reset-button"
+                  (click)="closeForm()">
+            Cancel
+          </button>
+
+          <button type="submit"
+                  class="primary-button"
+                  [disabled]="isSaving || employeeForm.invalid">
+
+            {{
+ isSaving
+              ? 'Saving...'
+              : (isEditing ? 'Update Employee' : 'Register Employee')
+            }}
+
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+
+  </div>
+
+</div>
