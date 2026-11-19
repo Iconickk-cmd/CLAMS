@@ -1,5 +1,4 @@
-
-import {
+﻿import {
   Component,
   inject,
   ChangeDetectorRef
@@ -70,7 +69,29 @@ export class LoginComponent {
           });
 
           if (response.isSuccessful && response.accessToken) {
-            this.router.navigate(['/dashboard']);
+
+            const roles = response.roles ?? [];
+
+            let destination = '/access-denied';
+
+            if (
+              roles.includes('SystemAdministrator') ||
+              roles.includes('HRManager')
+            ) {
+              destination = '/dashboard';
+            } else if (roles.includes('HROfficer')) {
+              destination = '/employees';
+            } else if (
+              roles.includes('Management') ||
+              roles.includes('ReadOnly')
+            ) {
+              destination = '/departments';
+            } else if (roles.includes('Employee')) {
+              destination = '/leave-types';
+            }
+
+            this.router.navigate([destination]);
+
           } else {
             this.message =
               response.message || 'Login was unsuccessful.';

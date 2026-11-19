@@ -542,6 +542,77 @@ public class PortalAccountsController : ControllerBase
     }
 
     // =========================================================
+    // ASSIGN HR MANAGER ROLE
+    // System Administrator only
+    // =========================================================
+
+    [Authorize(Roles = "SystemAdministrator")]
+    [HttpPost("{userId:int}/assign-hr-manager")]
+    public async Task<IActionResult> AssignHRManagerRole(int userId)
+    {
+        var user = await _userManager.Users
+            .Include(u => u.Employee)
+            .SingleOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null)
+        {
+            return NotFound(new
+            {
+                message = "Portal account was not found."
+            });
+        }
+
+        if (!user.IsActive ||
+            user.Employee == null ||
+            user.Employee.EmploymentStatus != EmploymentStatus.Active)
+        {
+            return BadRequest(new
+            {
+                message = "Only active employee accounts can receive the HRManager role."
+            });
+        }
+
+        const string roleName = "HRManager";
+
+        if (!await _roleManager.RoleExistsAsync(roleName))
+        {
+            return StatusCode(500, new
+            {
+                message = "The HRManager security role has not been configured."
+            });
+        }
+
+        if (await _userManager.IsInRoleAsync(user, roleName))
+        {
+            return Ok(new
+            {
+                message = "The account already has the HRManager role.",
+                userId = user.Id,
+                portalUsername = user.UserName,
+                role = roleName
+            });
+        }
+
+        var result = await _userManager.AddToRoleAsync(user, roleName);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(new
+            {
+                message = "Could not assign the HRManager role.",
+                errors = result.Errors.Select(e => e.Description)
+            });
+        }
+
+        return Ok(new
+        {
+            message = "HRManager role assigned successfully.",
+            userId = user.Id,
+            portalUsername = user.UserName,
+            role = roleName
+        });
+    }
+    // =========================================================
     // AUTOMATIC NUMERIC USERNAME GENERATION
     // =========================================================
 
@@ -563,3 +634,4 @@ public class PortalAccountsController : ControllerBase
         return checked(highestNumber + 1).ToString();
     }
 }
+

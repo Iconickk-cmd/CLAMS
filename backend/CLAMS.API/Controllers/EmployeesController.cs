@@ -1,8 +1,9 @@
-﻿
+
 using CLAMS.API.DTOs.Employees;
 using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,7 @@ public class EmployeesController : ControllerBase
     }
 
     // GET: api/employees
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet]
     public async Task<IActionResult> GetEmployees(
         [FromQuery] string? search,
@@ -131,6 +133,7 @@ public class EmployeesController : ControllerBase
     }
 
     // GET: api/employees/5
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetEmployee(int id)
     {
@@ -197,6 +200,7 @@ public class EmployeesController : ControllerBase
     }
 
     // POST: api/employees
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer")]
     [HttpPost]
     public async Task<IActionResult> CreateEmployee(
         CreateEmployeeRequest request)
@@ -393,6 +397,7 @@ public class EmployeesController : ControllerBase
     }
 
     // PUT: api/employees/5
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateEmployee(
         int id,
@@ -604,6 +609,7 @@ public class EmployeesController : ControllerBase
     }
 
     // PATCH: api/employees/5/suspend
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPatch("{id:int}/suspend")]
     public async Task<IActionResult> SuspendEmployee(int id)
     {
@@ -650,6 +656,7 @@ public class EmployeesController : ControllerBase
     }
 
     // PATCH: api/employees/5/reactivate
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPatch("{id:int}/reactivate")]
     public async Task<IActionResult> ReactivateEmployee(int id)
     {

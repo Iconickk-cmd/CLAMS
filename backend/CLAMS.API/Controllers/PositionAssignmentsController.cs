@@ -4,6 +4,7 @@ using CLAMS.API.DTOs.PositionAssignments;
 using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -22,6 +23,7 @@ public class PositionAssignmentsController : ControllerBase
     }
 
     // GET: api/position-assignments
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet]
     public async Task<IActionResult> GetAssignments(
         int? employeeId,
@@ -88,6 +90,7 @@ public class PositionAssignmentsController : ControllerBase
     }
 
     // GET: api/position-assignments/1
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetAssignment(int id)
     {
@@ -109,6 +112,7 @@ public class PositionAssignmentsController : ControllerBase
     }
 
     // GET: api/position-assignments/employee/1
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet("employee/{employeeId:int}")]
     public async Task<IActionResult> GetEmployeeAssignments(
         int employeeId)
@@ -138,6 +142,7 @@ public class PositionAssignmentsController : ControllerBase
     }
 
     // POST: api/position-assignments
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer")]
     [HttpPost]
     public async Task<IActionResult> CreateAssignment(
         [FromBody] CreatePositionAssignmentRequest request)
@@ -310,6 +315,7 @@ public class PositionAssignmentsController : ControllerBase
     }
 
     // POST: api/position-assignments/1/transfer
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer")]
     [HttpPost("{id:int}/transfer")]
     public async Task<IActionResult> TransferAssignment(
         int id,
@@ -555,6 +561,7 @@ public class PositionAssignmentsController : ControllerBase
     }
 
     // PATCH: api/position-assignments/1/end
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer")]
     [HttpPatch("{id:int}/end")]
     public async Task<IActionResult> EndAssignment(
         int id,
@@ -859,3 +866,4 @@ public class PositionAssignmentsController : ControllerBase
         };
     }
 }
+

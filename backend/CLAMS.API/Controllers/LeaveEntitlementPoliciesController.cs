@@ -1,4 +1,4 @@
-﻿
+
 using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Data;
@@ -457,7 +457,7 @@ public class LeaveEntitlementPoliciesController : ControllerBase
         if (request.AllowCarryForward &&
             !string.Equals(
                 leaveType.Code,
-                "ANNUAL",
+                "AL",
                 StringComparison.OrdinalIgnoreCase))
         {
             return "Carry-forward is only permitted for Annual Leave.";

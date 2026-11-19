@@ -1,3 +1,4 @@
+﻿using Microsoft.AspNetCore.Authorization;
 
 using System.Text;
 using CLAMS.API.Services;
@@ -103,10 +104,16 @@ builder.Services
     });
 
 // Authorization.
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // OpenAPI.
 builder.Services.AddOpenApi();
+builder.Services.AddSwaggerGen();
 
 // Angular frontend CORS.
 builder.Services.AddCors(options =>
@@ -133,6 +140,9 @@ await CLAMSAdminBootstrapper.SeedAsync(app.Services);
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 // HTTP request pipeline.
@@ -149,3 +159,4 @@ app.MapControllers();
 app.Run();
 
 public partial class Program { }
+

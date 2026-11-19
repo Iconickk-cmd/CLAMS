@@ -1,5 +1,4 @@
-
-:host {
+﻿:host {
   display: block;
   min-height: 100vh;
 }
@@ -10,32 +9,32 @@
   justify-content: center;
   align-items: center;
   padding: 30px 18px;
-  background: #eaf3e9;
+  background: #F5F6FA;
   box-sizing: border-box;
 }
 
 .login-card {
   width: 540px;
-  height: 540px;
+  min-height: 540px;
   max-width: 100%;
-  background: #ffffff;
+  background: #FFFFFF;
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 40px rgba(31, 77, 45, 0.12);
+  box-shadow: 0 12px 40px rgba(23, 38, 79, 0.10);
   display: flex;
   flex-direction: column;
+  border: 1px solid #E1E5ED;
 }
 
 .top-accent {
   height: 5px;
   flex-shrink: 0;
-  background: linear-gradient(90deg, #176b37, #54a968);
+  background: linear-gradient(90deg, #17264F, #315BCE);
 }
 
 .login-content {
   flex: 1;
-  min-height: 0;
-  padding: 25px 55px 15px;
+  padding: 25px 55px 20px;
   text-align: center;
   display: flex;
   flex-direction: column;
@@ -51,19 +50,20 @@
 .logo-circle {
   width: 68px;
   height: 68px;
-  border-radius: 50%;
-  background: #e7f2e8;
-  border: 2px solid #277443;
+  border-radius: 16px;
+  background: #17264F;
+  border: 2px solid #315BCE;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #176b37;
+  color: #FFFFFF;
   font-size: 39px;
   font-weight: 800;
+  box-shadow: 0 5px 14px rgba(23, 38, 79, 0.16);
 }
 
 .login-content h1 {
-  color: #176b37;
+  color: #17264F;
   font-size: 29px;
   font-weight: 800;
   letter-spacing: 1.5px;
@@ -71,7 +71,7 @@
 }
 
 .subtitle {
-  color: #777777;
+  color: #687080;
   font-size: 13px;
   margin: 0 0 19px;
 }
@@ -79,12 +79,12 @@
 .welcome-text {
   font-size: 21px;
   font-weight: 700;
-  color: #303b33;
+  color: #111318;
   margin-bottom: 6px;
 }
 
 .instruction {
-  color: #888888;
+  color: #687080;
   font-size: 13px;
   margin: 0 0 18px;
 }
@@ -99,7 +99,7 @@ form {
 
   label {
     display: block;
-    color: #343d35;
+    color: #17264F;
     font-size: 13px;
     font-weight: 600;
     margin-bottom: 7px;
@@ -109,22 +109,22 @@ form {
 .input-wrapper {
   display: flex;
   align-items: center;
-  background: #fffbea;
-  border: 1px solid #e9dfb6;
-  border-radius: 6px;
+  background: #FFFFFF;
+  border: 1px solid #D6DCE8;
+  border-radius: 8px;
   height: 46px;
   padding: 0 13px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 
   &:focus-within {
-    border-color: #277443;
-    box-shadow: 0 0 0 3px rgba(39, 116, 67, 0.09);
+    border-color: #315BCE;
+    box-shadow: 0 0 0 3px rgba(49, 91, 206, 0.12);
   }
 
   svg {
     width: 19px;
     height: 19px;
-    stroke: #64836b;
+    stroke: #687080;
     fill: none;
     stroke-width: 1.7px;
     margin-right: 12px;
@@ -137,10 +137,10 @@ form {
     background: transparent;
     width: 100%;
     font-size: 14px;
-    color: #333333;
+    color: #111318;
 
     &::placeholder {
-      color: #a5a5a5;
+      color: #9299A7;
     }
   }
 }
@@ -155,12 +155,12 @@ form {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #555555;
+  color: #687080;
   font-size: 13px;
   cursor: pointer;
 
   input {
-    accent-color: #24743e;
+    accent-color: #315BCE;
     width: 15px;
     height: 15px;
   }
@@ -174,11 +174,15 @@ form {
     flex: 1;
     height: 44px;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s;
+
+    &:active:not(:disabled) {
+      transform: translateY(1px);
+    }
   }
 
   span {
@@ -188,11 +192,11 @@ form {
 }
 
 .login-button {
-  background: #24743e;
-  color: #ffffff;
+  background: #315BCE;
+  color: #FFFFFF;
 
   &:hover:not(:disabled) {
-    background: #195c30;
+    background: #274BAF;
   }
 
   &:disabled {
@@ -202,11 +206,12 @@ form {
 }
 
 .reset-button {
-  background: #eeeeee;
-  color: #444444;
+  background: #EAEAEA;
+  color: #17264F;
+  border: 1px solid #D6DCE8 !important;
 
-  &:hover {
-    background: #dddddd;
+  &:hover:not(:disabled) {
+    background: #DDE1E9;
   }
 
   &:disabled {
@@ -217,10 +222,11 @@ form {
 
 .message {
   margin: 10px 0 0;
-  padding: 8px;
-  background: #edf5ed;
-  color: #27633a;
-  border-radius: 5px;
+  padding: 9px;
+  background: #EEF2FF;
+  color: #17264F;
+  border: 1px solid #D6DCE8;
+  border-radius: 6px;
   font-size: 12px;
   line-height: 1.4;
 }
@@ -235,13 +241,14 @@ form {
     display: inline-block;
     background: transparent;
     border: none;
-    color: #24743e;
+    color: #315BCE;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     padding: 7px 12px;
 
     &:hover {
+      color: #274BAF;
       text-decoration: underline;
     }
   }
@@ -249,10 +256,10 @@ form {
 
 .card-footer {
   padding: 14px;
-  background: #f8faf8;
-  border-top: 1px solid #edf0ed;
+  background: #F8F9FC;
+  border-top: 1px solid #E1E5ED;
   text-align: center;
-  color: #999999;
+  color: #687080;
   font-size: 11px;
   flex-shrink: 0;
 }
@@ -265,8 +272,8 @@ form {
   .login-card {
     width: 100%;
     max-width: 460px;
-    height: auto;
     min-height: 540px;
+    height: auto;
   }
 
   .login-content {

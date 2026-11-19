@@ -1,7 +1,8 @@
-﻿
+
 using CLAMS.API.DTOs.Departments;
 using CLAMS.Domain.Entities;
 using CLAMS.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ public class DepartmentsController : ControllerBase
     }
 
     // GET: api/departments
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet]
     public async Task<IActionResult> GetDepartments(
         [FromQuery] string? search,
@@ -83,6 +85,7 @@ public class DepartmentsController : ControllerBase
     }
 
     // GET: api/departments/5
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetDepartment(int id)
     {
@@ -115,6 +118,7 @@ public class DepartmentsController : ControllerBase
     }
 
     // POST: api/departments
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPost]
     public async Task<IActionResult> CreateDepartment(
         CreateDepartmentRequest request)
@@ -165,6 +169,7 @@ public class DepartmentsController : ControllerBase
     }
 
     // PUT: api/departments/5
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdateDepartment(
         int id,
@@ -219,6 +224,7 @@ public class DepartmentsController : ControllerBase
     }
 
     // PATCH: api/departments/5/deactivate
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPatch("{id:int}/deactivate")]
     public async Task<IActionResult> DeactivateDepartment(int id)
     {
@@ -257,6 +263,7 @@ public class DepartmentsController : ControllerBase
     }
 
     // PATCH: api/departments/5/activate
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPatch("{id:int}/activate")]
     public async Task<IActionResult> ActivateDepartment(int id)
     {

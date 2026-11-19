@@ -1,7 +1,8 @@
-﻿
+
 using CLAMS.API.DTOs.Positions;
 using CLAMS.Domain.Entities;
 using CLAMS.Infrastructure.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ public class PositionsController : ControllerBase
     }
 
     // GET: api/positions
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet]
     public async Task<IActionResult> GetPositions(
         [FromQuery] string? search,
@@ -103,6 +105,7 @@ public class PositionsController : ControllerBase
     }
 
     // GET: api/positions/5
+    [Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetPosition(int id)
     {
@@ -146,6 +149,7 @@ public class PositionsController : ControllerBase
     }
 
     // POST: api/positions
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPost]
     public async Task<IActionResult> CreatePosition(
         CreatePositionRequest request)
@@ -230,6 +234,7 @@ public class PositionsController : ControllerBase
     }
 
     // PUT: api/positions/5
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPut("{id:int}")]
     public async Task<IActionResult> UpdatePosition(
         int id,
@@ -333,6 +338,7 @@ public class PositionsController : ControllerBase
     }
 
     // PATCH: api/positions/5/deactivate
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPatch("{id:int}/deactivate")]
     public async Task<IActionResult> DeactivatePosition(int id)
     {
@@ -385,6 +391,7 @@ public class PositionsController : ControllerBase
     }
 
     // PATCH: api/positions/5/activate
+    [Authorize(Roles = "SystemAdministrator,HRManager")]
     [HttpPatch("{id:int}/activate")]
     public async Task<IActionResult> ActivatePosition(int id)
     {

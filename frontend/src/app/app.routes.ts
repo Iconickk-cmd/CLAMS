@@ -1,4 +1,4 @@
-import { Routes } from '@angular/router';
+﻿import { Routes } from '@angular/router';
 
 import { LoginComponent } from './login/login.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
@@ -8,9 +8,9 @@ import { PositionComponent } from './positions/position.component';
 import { PositionAssignmentComponent } from './position-assignments/position-assignment.component';
 import { LeaveTypeComponent } from './leave-types/leave-type.component';
 import { LeaveEntitlementPolicyComponent } from './leave-entitlement-policies/leave-entitlement-policy.component';
+import { AccessDeniedComponent } from './access-denied/access-denied.component';
 
-import { ModulePlaceholderComponent } from './shared/module-placeholder.component';
-import { authGuard } from './guards/auth.guard';
+import { roleGuard } from './guards/role.guard';
 
 export const routes: Routes = [
 
@@ -20,59 +20,82 @@ export const routes: Routes = [
   },
 
   {
+    path: 'access-denied',
+    component: AccessDeniedComponent
+  },
+
+  {
     path: '',
     component: DashboardComponent,
-    canActivate: [authGuard]
+    canActivate: [roleGuard],
+    data: {
+      roles: ['SystemAdministrator', 'HRManager']
+    }
   },
 
   {
     path: 'dashboard',
     component: DashboardComponent,
-    canActivate: [authGuard]
+    canActivate: [roleGuard],
+    data: {
+      roles: ['SystemAdministrator', 'HRManager']
+    }
   },
 
   {
     path: 'employees',
     component: EmployeeComponent,
-    canActivate: [authGuard]
+    canActivate: [roleGuard],
+    data: {
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer']
+    }
   },
 
   {
     path: 'departments',
     component: DepartmentComponent,
-    canActivate: [authGuard]
+    canActivate: [roleGuard],
+    data: {
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly']
+    }
   },
 
   {
     path: 'positions',
     component: PositionComponent,
-    canActivate: [authGuard]
+    canActivate: [roleGuard],
+    data: {
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly']
+    }
   },
 
   {
     path: 'position-assignments',
     component: PositionAssignmentComponent,
-    canActivate: [authGuard],
+    canActivate: [roleGuard],
     data: {
-      title: 'Position Assignments'
+      title: 'Position Assignments',
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly']
     }
   },
 
   {
     path: 'leave-types',
     component: LeaveTypeComponent,
-    canActivate: [authGuard],
+    canActivate: [roleGuard],
     data: {
-      title: 'Leave Types Management'
+      title: 'Leave Types Management',
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly', 'Employee']
     }
   },
 
   {
     path: 'leave-entitlement-policies',
     component: LeaveEntitlementPolicyComponent,
-    canActivate: [authGuard],
+    canActivate: [roleGuard],
     data: {
-      title: 'Leave Entitlement Policies'
+      title: 'Leave Entitlement Policies',
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly', 'Employee']
     }
   },
 
