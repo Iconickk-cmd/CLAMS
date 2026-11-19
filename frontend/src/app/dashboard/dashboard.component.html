@@ -1,3 +1,4 @@
+﻿
 <div class="dashboard-layout">
 
   <!-- Sidebar -->
@@ -5,10 +6,9 @@
 
     <div class="sidebar-brand">
       <div class="brand-icon">C</div>
-
       <div>
-        <h2>CLAMS HR</h2>
-        <span>Management Portal</span>
+        <h2>CLAMS</h2>
+        <span>CHAMIRA SYSTEMS</span>
       </div>
     </div>
 
@@ -21,57 +21,49 @@
       <a routerLink="/dashboard"
          routerLinkActive="active"
          [routerLinkActiveOptions]="{ exact: true }">
-        <span class="menu-icon">▦</span>
+        <span class="menu-icon">&#9638;</span>
         Dashboard
       </a>
 
-      <a routerLink="/employees"
-         routerLinkActive="active">
-        <span class="menu-icon">♙</span>
+      <a routerLink="/employees" routerLinkActive="active">
+        <span class="menu-icon">&#128100;</span>
         Employees
       </a>
 
-      <a routerLink="/departments"
-         routerLinkActive="active">
-        <span class="menu-icon">▤</span>
+      <a routerLink="/departments" routerLinkActive="active">
+        <span class="menu-icon">&#127970;</span>
         Departments
       </a>
 
-      <a routerLink="/positions"
-         routerLinkActive="active">
-        <span class="menu-icon">▣</span>
+      <a routerLink="/positions" routerLinkActive="active">
+        <span class="menu-icon">&#128188;</span>
         Positions
       </a>
 
-      <a routerLink="/position-assignments"
-         routerLinkActive="active">
-        <span class="menu-icon">⇄</span>
+      <a routerLink="/position-assignments" routerLinkActive="active">
+        <span class="menu-icon">&#8644;</span>
         Position Assignments
       </a>
 
-      <a routerLink="/leave-types"
-         routerLinkActive="active">
-        <span class="menu-icon">◷</span>
+      <a routerLink="/leave-types" routerLinkActive="active">
+        <span class="menu-icon">&#9716;</span>
         Leave Types
       </a>
 
-      <a routerLink="/leave-entitlement-policies"
-         routerLinkActive="active">
-        <span class="menu-icon">▧</span>
+      <a routerLink="/leave-entitlement-policies" routerLinkActive="active">
+        <span class="menu-icon">&#128196;</span>
         Leave Entitlement Policies
       </a>
 
     </nav>
 
     <div class="sidebar-bottom">
-
       <div class="sidebar-divider"></div>
 
       <button class="logout-button" (click)="logout()">
-        <span class="menu-icon">↪</span>
+        <span class="menu-icon">&#10140;</span>
         Sign Out
       </button>
-
     </div>
 
   </aside>
@@ -105,6 +97,7 @@
     <!-- Dashboard Body -->
     <section class="dashboard-content">
 
+      <!-- Welcome Banner -->
       <div class="welcome-banner">
 
         <div>
@@ -119,17 +112,18 @@
 
       </div>
 
+      <!-- Workforce Heading -->
       <div class="section-heading">
 
         <div>
           <h2>Workforce Overview</h2>
-          <p>Live information from the CLAMS HR database</p>
+          <p>Live information from the CLAMS workforce database</p>
         </div>
 
         <button class="refresh-button"
                 (click)="loadDashboard()"
                 [disabled]="isLoading">
-          ↻ Refresh
+          &#8635; Refresh
         </button>
 
       </div>
@@ -144,17 +138,16 @@
 
       @if (hasLoadError) {
       <div class="error-message">
-        Some dashboard information could not be loaded.
+        Dashboard information could not be loaded.
         Please check that the backend API is running and refresh.
       </div>
       }
 
-      <!-- Statistics -->
+      <!-- Workforce Statistics -->
       <div class="stats-grid">
 
         <div class="stat-card employees-card">
-          <div class="stat-icon">♙</div>
-
+          <div class="stat-icon">&#128100;</div>
           <div class="stat-info">
             <span>Total Employees</span>
             <h2>{{ stats.totalEmployees }}</h2>
@@ -163,8 +156,7 @@
         </div>
 
         <div class="stat-card active-card">
-          <div class="stat-icon">✓</div>
-
+          <div class="stat-icon">&#10003;</div>
           <div class="stat-info">
             <span>Active Employees</span>
             <h2>{{ stats.activeEmployees }}</h2>
@@ -173,8 +165,7 @@
         </div>
 
         <div class="stat-card departments-card">
-          <div class="stat-icon">▤</div>
-
+          <div class="stat-icon">&#127970;</div>
           <div class="stat-info">
             <span>Departments</span>
             <h2>{{ stats.departments }}</h2>
@@ -183,8 +174,7 @@
         </div>
 
         <div class="stat-card positions-card">
-          <div class="stat-icon">▣</div>
-
+          <div class="stat-icon">&#128188;</div>
           <div class="stat-info">
             <span>Positions</span>
             <h2>{{ stats.positions }}</h2>
@@ -193,12 +183,61 @@
         </div>
 
         <div class="stat-card assignments-card">
-          <div class="stat-icon">⇄</div>
-
+          <div class="stat-icon">&#8644;</div>
           <div class="stat-info">
             <span>Current Assignments</span>
             <h2>{{ stats.currentAssignments }}</h2>
-            <small>Active position assignments</small>
+            <small>Position assignments</small>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Leave Management Overview -->
+      <div class="section-heading leave-heading">
+
+        <div>
+          <h2>Leave Management Overview</h2>
+          <p>Employee leave activity and request status</p>
+        </div>
+
+      </div>
+
+      <div class="stats-grid">
+
+        <div class="stat-card pending-leave-card">
+          <div class="stat-icon">&#9203;</div>
+          <div class="stat-info">
+            <span>Pending Requests</span>
+            <h2>{{ stats.pendingLeaveRequests }}</h2>
+            <small>Awaiting approval</small>
+          </div>
+        </div>
+
+        <div class="stat-card approved-leave-card">
+          <div class="stat-icon">&#10003;</div>
+          <div class="stat-info">
+            <span>Approved Requests</span>
+            <h2>{{ stats.approvedLeaveRequests }}</h2>
+            <small>Approved leave requests</small>
+          </div>
+        </div>
+
+        <div class="stat-card rejected-leave-card">
+          <div class="stat-icon">&#10005;</div>
+          <div class="stat-info">
+            <span>Rejected Requests</span>
+            <h2>{{ stats.rejectedLeaveRequests }}</h2>
+            <small>Rejected leave requests</small>
+          </div>
+        </div>
+
+        <div class="stat-card current-leave-card">
+          <div class="stat-icon">&#128100;</div>
+          <div class="stat-info">
+            <span>Currently on Leave</span>
+            <h2>{{ stats.employeesCurrentlyOnLeave }}</h2>
+            <small>Employees on approved leave today</small>
           </div>
         </div>
 
@@ -219,37 +258,37 @@
       <div class="quick-access-grid">
 
         <a routerLink="/employees" class="quick-card">
-          <span class="quick-icon">♙</span>
+          <span class="quick-icon">&#128100;</span>
           <strong>Employee Management</strong>
           <span>Manage employee records</span>
         </a>
 
         <a routerLink="/departments" class="quick-card">
-          <span class="quick-icon">▤</span>
+          <span class="quick-icon">&#127970;</span>
           <strong>Department Management</strong>
           <span>Manage organizational departments</span>
         </a>
 
         <a routerLink="/positions" class="quick-card">
-          <span class="quick-icon">▣</span>
+          <span class="quick-icon">&#128188;</span>
           <strong>Position Management</strong>
           <span>Manage approved positions</span>
         </a>
 
         <a routerLink="/position-assignments" class="quick-card">
-          <span class="quick-icon">⇄</span>
+          <span class="quick-icon">&#8644;</span>
           <strong>Position Assignments</strong>
           <span>Manage employee assignments</span>
         </a>
 
         <a routerLink="/leave-types" class="quick-card">
-          <span class="quick-icon">◷</span>
+          <span class="quick-icon">&#9716;</span>
           <strong>Leave Types Management</strong>
           <span>Configure available employee leave types</span>
         </a>
 
         <a routerLink="/leave-entitlement-policies" class="quick-card">
-          <span class="quick-icon">▧</span>
+          <span class="quick-icon">&#128196;</span>
           <strong>Leave Entitlement Policies</strong>
           <span>Configure employee leave entitlement rules</span>
         </a>
@@ -257,7 +296,7 @@
       </div>
 
       <footer class="dashboard-footer">
-        CLAMS HR | Human Resource Management System
+        CLAMS | Chamira Leveraged Advanced Management System
       </footer>
 
     </section>
@@ -265,3 +304,4 @@
   </main>
 
 </div>
+
