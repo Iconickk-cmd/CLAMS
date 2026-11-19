@@ -1,7 +1,6 @@
+﻿<div class="app-shell">
 
-<div class="app-shell">
-
-  <!-- Shared navigation for all modules -->
+  <!-- Shared Chamira navigation for all modules -->
   <header class="global-page-navigation"
           *ngIf="showBackToDashboard">
 
@@ -9,10 +8,16 @@
        class="back-dashboard-link"
        aria-label="Back to Dashboard">
 
-      <span class="back-arrow">←</span>
+      <span class="back-arrow" aria-hidden="true">&#8592;</span>
       <span>Back to Dashboard</span>
 
     </a>
+
+    <div class="navigation-brand">
+      <span class="brand-name">CLAMS</span>
+      <span class="brand-divider"></span>
+      <span class="brand-company">CHAMIRA SYSTEMS</span>
+    </div>
 
   </header>
 
@@ -20,5 +25,25 @@
   <main class="app-main">
     <router-outlet></router-outlet>
   </main>
+
+  <!-- Shared Chamira footer -->
+  <footer class="global-page-footer">
+
+    <div class="footer-brand">
+      <strong>CLAMS</strong>
+      <span>Chamira Leveraged Advanced Management System</span>
+    </div>
+
+    <div class="footer-company">
+      <strong>CHAMIRA SYSTEMS</strong>
+      <span>Enterprise Software Solutions</span>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 Chamira Systems. All rights reserved.</span>
+      <span>Version 1.0.0</span>
+    </div>
+
+  </footer>
 
 </div>

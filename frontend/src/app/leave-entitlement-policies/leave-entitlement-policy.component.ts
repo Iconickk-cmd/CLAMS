@@ -261,7 +261,7 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
       item => item.id === Number(this.form.leaveTypeId)
     );
 
-    return selected?.code.toUpperCase() === 'ANNUAL';
+    return selected?.code.toUpperCase() === 'AL';
   }
 
   get selectedEmployee(): Employee | undefined {

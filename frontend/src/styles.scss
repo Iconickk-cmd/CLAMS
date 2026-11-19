@@ -1,3 +1,42 @@
+﻿/* =========================================
+   CHAMIRA DESIGN SYSTEM
+   CLAMS - Chamira Leveraged Advanced
+   Management System
+========================================= */
+
+:root {
+  /* Official Chamira brand colours */
+  --chamira-electric-blue: #315BCE;
+  --chamira-midnight-blue: #17264F;
+  --chamira-obsidian: #111318;
+  --chamira-neutral: #EAEAEA;
+
+  /* Application colours */
+  --clams-primary: var(--chamira-electric-blue);
+  --clams-primary-hover: #274BAF;
+  --clams-secondary: var(--chamira-midnight-blue);
+  --clams-text: var(--chamira-obsidian);
+  --clams-muted: #687080;
+  --clams-background: #F5F6FA;
+  --clams-surface: #FFFFFF;
+  --clams-border: #E1E5ED;
+
+  /* Typography */
+  --clams-font-family:
+    "Avenir LT Pro",
+    "Avenir",
+    "Segoe UI",
+    Arial,
+    sans-serif;
+
+  /* Common interface properties */
+  --clams-radius-sm: 6px;
+  --clams-radius-md: 10px;
+  --clams-radius-lg: 14px;
+
+  --clams-shadow:
+    0 2px 10px rgba(23, 38, 79, 0.06);
+}
 
 * {
   box-sizing: border-box;
@@ -8,9 +47,26 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  font-family: "Segoe UI", Arial, sans-serif;
+  font-family: var(--clams-font-family);
+  color: var(--clams-text);
 }
 
 body {
   min-height: 100vh;
+  background: var(--clams-background);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: var(--clams-primary);
 }

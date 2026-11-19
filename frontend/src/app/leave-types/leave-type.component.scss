@@ -1,6 +1,6 @@
-:host {
+﻿:host {
   display: block;
-  color: #243247;
+  color: #111318;
 }
 
 .leave-page {
@@ -25,17 +25,17 @@
   h1 {
     margin: 7px 0;
     font-size: 28px;
-    color: #172b4d;
+    color: #17264F;
   }
 
   p {
     margin: 0;
-    color: #718096;
+    color: #687080;
   }
 }
 
 .eyebrow {
-  color: #2773a5;
+  color: #315BCE;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.3px;
@@ -56,11 +56,11 @@ button {
 }
 
 .primary-button {
-  background: #176b87;
+  background: #315BCE;
   color: white;
 
   &:hover:not(:disabled) {
-    background: #10536b;
+    background: #274BAF;
   }
 }
 
@@ -75,7 +75,7 @@ button {
 .filter-card,
 .table-card {
   background: white;
-  border: 1px solid #e5eaf0;
+  border: 1px solid #E1E5ED;
   border-radius: 9px;
   padding: 20px;
 }
@@ -86,12 +86,12 @@ button {
   gap: 12px;
 
   span {
-    color: #718096;
+    color: #687080;
     font-size: 13px;
   }
 
   strong {
-    color: #172b4d;
+    color: #17264F;
     font-size: 27px;
   }
 }
@@ -108,12 +108,12 @@ button {
   h2 {
     margin: 0 0 5px;
     font-size: 18px;
-    color: #243247;
+    color: #111318;
   }
 
   p {
     margin: 0;
-    color: #718096;
+    color: #687080;
     font-size: 13px;
   }
 }
@@ -134,7 +134,7 @@ button {
   label {
     font-size: 13px;
     font-weight: 600;
-    color: #42526b;
+    color: #17264F;
 
     span {
       color: #d33b3b;
@@ -147,16 +147,16 @@ button {
     width: 100%;
     box-sizing: border-box;
     padding: 11px 12px;
-    border: 1px solid #d9e0e8;
+    border: 1px solid #D6DCE8;
     border-radius: 6px;
     background: #fff;
-    color: #243247;
+    color: #111318;
     font: inherit;
     font-size: 13px;
     outline: none;
 
     &:focus {
-      border-color: #277b9a;
+      border-color: #315BCE;
       box-shadow: 0 0 0 2px rgba(39, 123, 154, 0.1);
     }
   }
@@ -171,8 +171,8 @@ button {
 }
 
 .reset-button {
-  background: #edf1f5;
-  color: #42526b;
+  background: #EEF2FF;
+  color: #17264F;
 
   &:hover {
     background: #dfe6ed;
@@ -180,8 +180,8 @@ button {
 }
 
 .refresh-button {
-  background: #edf4f7;
-  color: #176b87;
+  background: #EEF2FF;
+  color: #315BCE;
 }
 
 .table-wrapper {
@@ -198,25 +198,25 @@ table {
     text-align: left;
     font-size: 11px;
     letter-spacing: 0.5px;
-    color: #718096;
-    background: #f7f9fb;
-    border-bottom: 1px solid #e5eaf0;
+    color: #687080;
+    background: #F5F6FA;
+    border-bottom: 1px solid #E1E5ED;
   }
 
   td {
     padding: 15px 12px;
-    border-bottom: 1px solid #edf0f4;
+    border-bottom: 1px solid #E1E5ED;
     font-size: 13px;
-    color: #42526b;
+    color: #17264F;
   }
 
   tbody tr:hover {
-    background: #fafcfd;
+    background: #F5F6FA;
   }
 }
 
 .code-label {
-  color: #176b87;
+  color: #315BCE;
 }
 
 .status-badge {
@@ -255,8 +255,8 @@ table {
 }
 
 .edit-button {
-  background: #e8f1f8;
-  color: #23648c;
+  background: #EEF2FF;
+  color: #315BCE;
 }
 
 .deactivate-button {
@@ -274,7 +274,7 @@ table {
 .error-state {
   padding: 30px;
   text-align: center;
-  color: #718096;
+  color: #687080;
 }
 
 .error-state {
@@ -336,26 +336,26 @@ table {
 
   h2 {
     margin: 7px 0;
-    color: #172b4d;
+    color: #17264F;
   }
 
   p {
     margin: 0;
-    color: #718096;
+    color: #687080;
     font-size: 13px;
   }
 }
 
 .close-button {
-  background: #edf1f5;
-  color: #42526b;
+  background: #EEF2FF;
+  color: #17264F;
   font-size: 20px;
   padding: 5px 11px;
 }
 
 .option-card {
-  background: #f7f9fb;
-  border: 1px solid #e5eaf0;
+  background: #F5F6FA;
+  border: 1px solid #E1E5ED;
   border-radius: 8px;
   padding: 16px;
   margin: 10px 0 20px;
@@ -370,7 +370,7 @@ table {
 
   input {
     margin-top: 4px;
-    accent-color: #176b87;
+    accent-color: #315BCE;
   }
 
   span {
@@ -381,12 +381,12 @@ table {
 
   strong {
     font-size: 13px;
-    color: #243247;
+    color: #111318;
   }
 
   small {
     font-size: 12px;
-    color: #718096;
+    color: #687080;
   }
 }
 
@@ -430,3 +430,4 @@ table {
     padding: 18px;
   }
 }
+
