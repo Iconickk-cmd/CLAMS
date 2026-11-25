@@ -6,10 +6,9 @@ import {
   inject
 } from '@angular/core';
 
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
-import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
@@ -41,8 +40,7 @@ interface DashboardStatistics {
   imports: [
     RouterLink,
     RouterLinkActive,
-    DatePipe,
-    DecimalPipe
+    DatePipe
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
@@ -67,8 +65,8 @@ export class DashboardComponent implements OnInit {
   actionTab: 'actions' | 'statements' | 'policies' = 'actions';
   summaryLoading = false;
   summaryError = false;
-  leaveBalances: { leaveType: string; availableDays: number }[] = [];
   pendingRequestCount = 0;
+  approvedRequestCount = 0;
   upcomingLeave: LeaveRequest | null = null;
 
   stats: DashboardStatistics = {
@@ -157,28 +155,16 @@ export class DashboardComponent implements OnInit {
     this.summaryLoading = true;
     this.summaryError = false;
 
-    forkJoin({
-      balances: this.leaveService.getMyBalances(),
-      requests: this.leaveService.getMyRequests()
-    }).subscribe({
-      next: ({ balances, requests }) => {
-        // One row per leave type, summing pay categories and any
-        // unexpired carry-forward.
-        const totals = new Map<string, number>();
-        for (const line of balances.balances ?? []) {
-          totals.set(
-            line.leaveType,
-            (totals.get(line.leaveType) ?? 0) + line.availableDays
-          );
-        }
-        this.leaveBalances = Array.from(totals, ([leaveType, availableDays]) => ({
-          leaveType,
-          availableDays
-        }));
+    this.leaveService.getMyRequests().subscribe({
+      next: response => {
+        const all = response.requests ?? [];
 
-        const all = requests.requests ?? [];
         this.pendingRequestCount = all.filter(
           r => r.status === LeaveRequestStatus.Pending
+        ).length;
+
+        this.approvedRequestCount = all.filter(
+          r => r.status === LeaveRequestStatus.Approved
         ).length;
 
         const now = new Date();

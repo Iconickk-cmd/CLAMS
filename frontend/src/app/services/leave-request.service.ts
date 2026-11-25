@@ -15,8 +15,10 @@ export interface LeaveRequest {
   employeeName: string;
   leaveTypeId: number;
   leaveType: string;
+  leaveTypeCode?: string;
   startDate: string;
   endDate: string;
+  returnDate?: string | null;
   requestedDays: number;
   approvedDays: number;
   reason: string;

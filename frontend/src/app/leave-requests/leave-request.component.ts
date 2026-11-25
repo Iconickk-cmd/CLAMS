@@ -1,11 +1,14 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  HostListener,
   OnInit,
   ChangeDetectorRef,
   inject
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../services/auth.service';
 import {
   LeaveBalanceLine,
   LeaveRequest,
@@ -17,8 +20,16 @@ import {
 interface BalanceGroup {
   leaveTypeId: number;
   leaveType: string;
-  totalAvailable: number;
-  lines: LeaveBalanceLine[];
+  available: number;
+  totalDays: number;
+  takenDays: number;
+  percentTaken: number;
+  accrued: number;
+  entitlement: number;
+  hasCarryForward: boolean;
+  carryRemaining: number;
+  carryOriginal: number;
+  halfPayAvailable: number;
 }
 
 interface LeaveRequestForm {
@@ -31,12 +42,13 @@ interface LeaveRequestForm {
 @Component({
   selector: 'app-leave-request',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './leave-request.component.html',
   styleUrl: './leave-request.component.scss'
 })
 export class LeaveRequestComponent implements OnInit {
   private readonly leaveService = inject(LeaveRequestService);
+  private readonly authService = inject(AuthService);
   private readonly cdr = inject(ChangeDetectorRef);
 
   readonly status = LeaveRequestStatus;
@@ -44,8 +56,9 @@ export class LeaveRequestComponent implements OnInit {
   requests: LeaveRequest[] = [];
   balances: LeaveBalanceLine[] = [];
   balanceGroups: BalanceGroup[] = [];
-  balanceYear: number | null = null;
   balancesLoaded = false;
+  balancesFailed = false;
+
   leaveTypes: LeaveType[] = [];
 
   isLoading = false;
@@ -53,6 +66,9 @@ export class LeaveRequestComponent implements OnInit {
   isSaving = false;
   hasError = false;
   showForm = false;
+
+  openMenuId: number | null = null;
+  detailsRequest: LeaveRequest | null = null;
 
   message = '';
   errorMessage = '';
@@ -65,41 +81,89 @@ export class LeaveRequestComponent implements OnInit {
     this.loadBalances();
   }
 
+  @HostListener('document:click')
+  closeMenu(): void {
+    this.openMenuId = null;
+  }
+
+  @HostListener('document:keydown.escape')
+  closeOverlays(): void {
+    this.openMenuId = null;
+    this.detailsRequest = null;
+  }
+
+  // ---------------------------------------------------------------- balances
+
   loadBalances(): void {
     this.leaveService.getMyBalances().subscribe({
       next: response => {
         this.balances = response.balances ?? [];
         this.balanceGroups = this.buildBalanceGroups();
-        this.balanceYear = response.leaveYear;
         this.balancesLoaded = true;
+        this.balancesFailed = false;
         this.cdr.detectChanges();
       },
       error: error => {
         // Balances are informational; the page still works without them.
         console.error('Leave balances loading error:', error);
         this.balancesLoaded = false;
+        this.balancesFailed = true;
         this.cdr.detectChanges();
       }
     });
   }
 
-  /** Balance cards: one per leave type, with its pay-category lines. */
+  /** One card per leave type, combining pay categories and carry-forward. */
   private buildBalanceGroups(): BalanceGroup[] {
     const groups = new Map<number, BalanceGroup>();
 
     for (const line of this.balances) {
       let group = groups.get(line.leaveTypeId);
+
       if (!group) {
         group = {
           leaveTypeId: line.leaveTypeId,
           leaveType: line.leaveType,
-          totalAvailable: 0,
-          lines: []
+          available: 0,
+          totalDays: 0,
+          takenDays: 0,
+          percentTaken: 0,
+          accrued: 0,
+          entitlement: 0,
+          hasCarryForward: false,
+          carryRemaining: 0,
+          carryOriginal: 0,
+          halfPayAvailable: 0
         };
         groups.set(line.leaveTypeId, group);
       }
-      group.totalAvailable += line.availableDays;
-      group.lines.push(line);
+
+      group.available += line.availableDays;
+      group.takenDays += line.takenDays;
+      group.totalDays += line.accruedDays + line.adjustmentDays;
+
+      if (line.source === 'CarryForward') {
+        group.hasCarryForward = true;
+        group.carryRemaining += line.availableDays;
+        group.carryOriginal += line.accruedDays;
+      } else {
+        group.accrued += line.accruedDays;
+        group.entitlement += line.annualEntitlementDays;
+      }
+
+      if (line.payCategory === 'HalfPay') {
+        group.halfPayAvailable += line.availableDays;
+      }
+    }
+
+    for (const group of groups.values()) {
+      group.percentTaken =
+        group.totalDays > 0
+          ? Math.min(
+              100,
+              Math.round((group.takenDays / group.totalDays) * 100)
+            )
+          : 0;
     }
 
     return Array.from(groups.values());
@@ -110,12 +174,15 @@ export class LeaveRequestComponent implements OnInit {
     if (!this.form.leaveTypeId || !this.balancesLoaded) {
       return null;
     }
+
     const lines = this.balances.filter(
       b => b.leaveTypeId === this.form.leaveTypeId
     );
+
     if (lines.length === 0) {
       return null;
     }
+
     return lines.reduce((sum, b) => sum + b.availableDays, 0);
   }
 
@@ -125,10 +192,7 @@ export class LeaveRequestComponent implements OnInit {
       !this.balances.some(b => b.leaveTypeId === this.form.leaveTypeId);
   }
 
-  getPayCategoryLabel(line: LeaveBalanceLine): string {
-    const pay = line.payCategory === 'HalfPay' ? 'Half pay' : 'Full pay';
-    return line.source === 'CarryForward' ? `${pay} (carried forward)` : pay;
-  }
+  // ---------------------------------------------------------------- requests
 
   private emptyForm(): LeaveRequestForm {
     return {
@@ -165,7 +229,11 @@ export class LeaveRequestComponent implements OnInit {
 
     this.leaveService.getMyRequests().subscribe({
       next: response => {
-        this.requests = response.requests ?? [];
+        // HR accounts receive everyone's requests from this endpoint;
+        // this page is "my leave", so keep only the user's own.
+        const me = this.authService.getCurrentUser()?.employeeId;
+        const all = response.requests ?? [];
+        this.requests = me ? all.filter(r => r.employeeId === me) : all;
         this.isLoading = false;
         this.cdr.detectChanges();
       },
@@ -244,11 +312,17 @@ export class LeaveRequestComponent implements OnInit {
     });
   }
 
+  canCancel(request: LeaveRequest): boolean {
+    return (
+      request.status === LeaveRequestStatus.Pending ||
+      request.status === LeaveRequestStatus.Approved
+    );
+  }
+
   cancelRequest(request: LeaveRequest): void {
-    if (
-      request.status !== LeaveRequestStatus.Pending &&
-      request.status !== LeaveRequestStatus.Approved
-    ) {
+    this.openMenuId = null;
+
+    if (!this.canCancel(request)) {
       return;
     }
 
@@ -259,6 +333,7 @@ export class LeaveRequestComponent implements OnInit {
     }
 
     this.errorMessage = '';
+    this.detailsRequest = null;
 
     this.leaveService.cancelLeaveRequest(request.id).subscribe({
       next: response => {
@@ -276,6 +351,56 @@ export class LeaveRequestComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
+  }
+
+  // ---------------------------------------------------------------- table helpers
+
+  toggleMenu(id: number, event: Event): void {
+    event.stopPropagation();
+    this.openMenuId = this.openMenuId === id ? null : id;
+  }
+
+  viewDetails(request: LeaveRequest): void {
+    this.openMenuId = null;
+    this.detailsRequest = request;
+  }
+
+  closeDetails(): void {
+    this.detailsRequest = null;
+  }
+
+  /** Display reference such as ANL/0012/2026. */
+  leaveNumber(request: LeaveRequest): string {
+    const code = (
+      request.leaveTypeCode ||
+      request.leaveType.replace(/[^A-Za-z]/g, '').substring(0, 3)
+    ).toUpperCase();
+    const year = new Date(request.submittedAt).getFullYear();
+
+    return `${code}/${String(request.id).padStart(4, '0')}/${year}`;
+  }
+
+  /** Next working day after the leave ends (server-calculated). */
+  returnDate(request: LeaveRequest): string {
+    return request.returnDate
+      ? request.returnDate.substring(0, 10)
+      : this.nextWeekday(request.endDate);
+  }
+
+  // Fallback only: skips weekends but not public holidays.
+  private nextWeekday(isoDate: string): string {
+    const [y, m, d] = isoDate.substring(0, 10).split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+
+    do {
+      date.setDate(date.getDate() + 1);
+    } while (date.getDay() === 0 || date.getDay() === 6);
+
+    return (
+      `${date.getFullYear()}-` +
+      `${String(date.getMonth() + 1).padStart(2, '0')}-` +
+      `${String(date.getDate()).padStart(2, '0')}`
+    );
   }
 
   getStatusLabel(value: LeaveRequestStatus): string {
@@ -306,23 +431,5 @@ export class LeaveRequestComponent implements OnInit {
       default:
         return '';
     }
-  }
-
-  get pendingCount(): number {
-    return this.requests.filter(
-      item => item.status === LeaveRequestStatus.Pending
-    ).length;
-  }
-
-  get approvedCount(): number {
-    return this.requests.filter(
-      item => item.status === LeaveRequestStatus.Approved
-    ).length;
-  }
-
-  get rejectedCount(): number {
-    return this.requests.filter(
-      item => item.status === LeaveRequestStatus.Rejected
-    ).length;
   }
 }

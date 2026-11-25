@@ -77,4 +77,55 @@ public class WorkingDayCalculator
 
         return workingDates.Count;
     }
+
+    /// <summary>
+    /// For each date, returns the next working day after it
+    /// (skipping weekends and active holidays). Used to show the
+    /// return-to-work date for a leave request.
+    /// </summary>
+    public async Task<Dictionary<DateOnly, DateOnly>> GetNextWorkingDatesAsync(
+        IEnumerable<DateOnly> afterDates,
+        CancellationToken cancellationToken = default)
+    {
+        var dates = afterDates.Distinct().ToList();
+        var result = new Dictionary<DateOnly, DateOnly>();
+
+        if (dates.Count == 0)
+            return result;
+
+        var from = dates.Min().AddDays(1);
+        var to = dates.Max().AddDays(60);
+
+        var holidayDates = (await _context.Holidays
+            .AsNoTracking()
+            .Where(h =>
+                h.IsActive &&
+                h.HolidayDate >= from &&
+                h.HolidayDate <= to)
+            .Select(h => h.HolidayDate)
+            .Distinct()
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        foreach (var after in dates)
+        {
+            var next = after.AddDays(1);
+
+            for (var i = 0; i < 60; i++)
+            {
+                var isWeekend =
+                    next.DayOfWeek == DayOfWeek.Saturday ||
+                    next.DayOfWeek == DayOfWeek.Sunday;
+
+                if (!isWeekend && !holidayDates.Contains(next))
+                    break;
+
+                next = next.AddDays(1);
+            }
+
+            result[after] = next;
+        }
+
+        return result;
+    }
 }

@@ -72,6 +72,7 @@ public class LeaveRequestsController : ControllerBase
                 EmployeeName = r.Employee.FirstName + " " + r.Employee.LastName,
                 r.LeaveTypeId,
                 LeaveType = r.LeaveType.Name,
+                LeaveTypeCode = r.LeaveType.Code,
                 r.StartDate,
                 r.EndDate,
                 r.RequestedDays,
@@ -85,10 +86,38 @@ public class LeaveRequestsController : ControllerBase
             })
             .ToListAsync(cancellationToken);
 
+        // Return date = next working day after the last day of leave.
+        var returnDates = await _workingDayCalculator.GetNextWorkingDatesAsync(
+            requests.Select(r => r.EndDate),
+            cancellationToken);
+
+        var response = requests
+            .Select(r => new
+            {
+                r.Id,
+                r.EmployeeId,
+                r.EmployeeName,
+                r.LeaveTypeId,
+                r.LeaveType,
+                r.LeaveTypeCode,
+                r.StartDate,
+                r.EndDate,
+                ReturnDate = returnDates[r.EndDate],
+                r.RequestedDays,
+                r.ApprovedDays,
+                r.Reason,
+                r.Status,
+                r.SubmittedAt,
+                r.DecisionAt,
+                r.DecisionBy,
+                r.DecisionRemarks
+            })
+            .ToList();
+
         return Ok(new
         {
-            totalCount = requests.Count,
-            requests
+            totalCount = response.Count,
+            requests = response
         });
     }
 

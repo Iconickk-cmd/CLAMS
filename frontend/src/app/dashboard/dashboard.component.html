@@ -5,7 +5,12 @@
     <!-- Sidebar -->
     <aside class="emp-sidebar">
       <div class="emp-brand">
-        <div class="emp-brand-mark">C</div>
+        <svg class="emp-brand-mark" viewBox="0 0 100 100" aria-hidden="true">
+          <rect x="0" y="0" width="46" height="46" fill="#315BCE"/>
+          <polygon points="54,0 100,0 100,46 77,46 77,23 54,23" fill="#EAEAEA"/>
+          <polygon points="0,54 23,54 23,77 46,77 46,100 0,100" fill="#EAEAEA"/>
+          <rect x="54" y="54" width="46" height="46" fill="#EAEAEA"/>
+        </svg>
         <div class="emp-brand-text">
           <strong>CLAMS</strong>
           <span>CHAMIRA SYSTEMS</span>
@@ -195,21 +200,13 @@
           } @else if (summaryError) {
             <div class="emp-summary-note">Unable to load your summary right now.</div>
           } @else {
-            @for (balance of leaveBalances; track balance.leaveType) {
-              <div class="emp-summary-row">
-                <span>{{ balance.leaveType }}</span>
-                <strong>{{ balance.availableDays | number:'1.0-1' }} days</strong>
-              </div>
-            }
-            @if (leaveBalances.length === 0) {
-              <div class="emp-summary-row">
-                <span>Leave balance</span>
-                <strong>Not yet available</strong>
-              </div>
-            }
             <div class="emp-summary-row">
               <span>Pending requests</span>
               <strong>{{ pendingRequestCount }}</strong>
+            </div>
+            <div class="emp-summary-row">
+              <span>Approved requests</span>
+              <strong>{{ approvedRequestCount }}</strong>
             </div>
             <div class="emp-summary-row">
               <span>Next leave</span>

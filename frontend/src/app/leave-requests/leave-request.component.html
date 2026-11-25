@@ -1,285 +1,332 @@
 <div class="leave-page">
 
-  <div class="page-header">
-    <div>
-      <span class="page-eyebrow">EMPLOYEE SELF SERVICE</span>
-      <h1>My Leave Applications</h1>
-      <p>Apply for leave and track the progress of your applications.</p>
-    </div>
+  <nav class="page-tabs" aria-label="Employee sections">
+    <a routerLink="/dashboard" class="page-tab">Overview</a>
+    <span class="page-tab disabled" title="Coming soon">Profile</span>
+    <span class="page-tab disabled" title="Coming soon">Next of Kin</span>
+    <span class="page-tab active" aria-current="page">Leave</span>
+    <span class="page-tab disabled" title="Coming soon">Documents</span>
+  </nav>
 
-    <button
-      type="button"
-      class="btn-primary"
-      (click)="openForm()"
-      [disabled]="isLoadingTypes || leaveTypes.length === 0">
-      <span>+</span> Apply for Leave
-    </button>
-  </div>
+  <div class="page-body">
 
-  <div class="summary-grid">
-    <div class="summary-card">
-      <span class="summary-label">Total Applications</span>
-      <strong>{{ requests.length }}</strong>
-      <span class="summary-description">All submitted applications</span>
-    </div>
+    @if (message) {
+      <div class="alert alert-success">{{ message }}</div>
+    }
+    @if (errorMessage && !showForm) {
+      <div class="alert alert-error">{{ errorMessage }}</div>
+    }
 
-    <div class="summary-card pending-card">
-      <span class="summary-label">Pending</span>
-      <strong>{{ pendingCount }}</strong>
-      <span class="summary-description">Awaiting a decision</span>
-    </div>
+    <!-- Balance cards -->
+    <section class="balance-row" aria-label="Leave balances">
+      @if (balancesFailed) {
+        <div class="balance-note">Your leave balances could not be loaded right now.</div>
+      } @else if (!balancesLoaded) {
+        <div class="balance-note">Loading your leave balances...</div>
+      } @else {
+        @for (group of balanceGroups; track group.leaveTypeId) {
+          <article class="bal-card">
+            <span class="bal-type">{{ group.leaveType }}</span>
+            <div class="bal-figure" [class.is-empty]="group.available <= 0">
+              {{ group.available | number:'1.0-1' }} <span>BAL</span>
+            </div>
 
-    <div class="summary-card approved-card">
-      <span class="summary-label">Approved</span>
-      <strong>{{ approvedCount }}</strong>
-      <span class="summary-description">Approved applications</span>
-    </div>
+            @if (group.hasCarryForward || group.entitlement > 0) {
+              <div class="bal-lines">
+                @if (group.hasCarryForward) {
+                  <div>
+                    <strong>{{ group.carryRemaining | number:'1.0-1' }}</strong> of
+                    <strong>{{ group.carryOriginal | number:'1.0-1' }}</strong>
+                    <i>|</i> CARRIED FORWARD
+                  </div>
+                }
+                @if (group.entitlement > 0) {
+                  <div>
+                    <strong>{{ group.accrued | number:'1.0-1' }}</strong> of
+                    <strong>{{ group.entitlement | number:'1.0-1' }}</strong>
+                    <i>|</i> ACCRUED DAYS
+                  </div>
+                }
+              </div>
+            }
 
-    <div class="summary-card rejected-card">
-      <span class="summary-label">Rejected</span>
-      <strong>{{ rejectedCount }}</strong>
-      <span class="summary-description">Unsuccessful applications</span>
-    </div>
-  </div>
+            <div class="bal-bar" aria-hidden="true">
+              <span [style.width.%]="group.percentTaken"></span>
+            </div>
+            <div class="bal-foot">
+              <span>{{ group.takenDays | number:'1.0-1' }} OF {{ group.totalDays | number:'1.0-1' }} TAKEN</span>
+              <span>{{ group.percentTaken }}%</span>
+            </div>
+            @if (group.halfPayAvailable > 0) {
+              <div class="bal-note">
+                Includes {{ group.halfPayAvailable | number:'1.0-1' }} half-pay day(s)
+              </div>
+            }
+          </article>
+        } @empty {
+          <div class="balance-note">No leave balances have been recorded for you yet.</div>
+        }
+      }
+    </section>
 
-  <div class="balances-section" *ngIf="balancesLoaded && balanceGroups.length > 0">
-    <h2 class="balances-title">
-      My Leave Balances <span class="balances-year">{{ balanceYear }}</span>
-    </h2>
-    <div class="balance-grid">
-      <div class="balance-card" *ngFor="let group of balanceGroups">
-        <span class="summary-label">{{ group.leaveType }}</span>
-        <strong>{{ group.totalAvailable | number:'1.0-2' }}</strong>
-        <span class="summary-description">days available</span>
-        <ul class="balance-lines">
-          <li *ngFor="let line of group.lines">
-            <span>{{ getPayCategoryLabel(line) }}</span>
-            <span>
-              {{ line.availableDays | number:'1.0-2' }}
-              <small *ngIf="line.expiresOn">
-                (expires {{ line.expiresOn | date:'mediumDate' }})
-              </small>
-            </span>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  <div class="alert alert-success" *ngIf="message">
-    {{ message }}
-  </div>
-
-  <div class="alert alert-error" *ngIf="errorMessage && !showForm">
-    {{ errorMessage }}
-  </div>
-
-  <div class="table-card">
-    <div class="table-header">
-      <div>
-        <h2>Application History</h2>
-        <p>Review the leave applications you have submitted.</p>
-      </div>
-
+    <div class="apply-bar">
       <button
         type="button"
-        class="btn-secondary"
-        (click)="loadRequests()"
+        class="btn-apply"
+        (click)="openForm()"
+        [disabled]="isLoadingTypes || leaveTypes.length === 0">
+        <span class="plus" aria-hidden="true">+</span> Apply Leave
+      </button>
+      <button
+        type="button"
+        class="btn-link"
+        (click)="loadRequests(); loadBalances()"
         [disabled]="isLoading">
-        <span *ngIf="!isLoading">&#8635;</span>
         {{ isLoading ? 'Refreshing...' : 'Refresh' }}
       </button>
     </div>
 
-    <div class="loading-state" *ngIf="isLoading">
-      Loading your leave applications...
-    </div>
-
-    <div class="empty-state" *ngIf="!isLoading && hasError">
-      <h3>Unable to load applications</h3>
-      <p>Please check your connection and try again.</p>
-      <button type="button" class="btn-secondary" (click)="loadRequests()">
-        Try Again
-      </button>
-    </div>
-
-    <div class="empty-state" *ngIf="!isLoading && !hasError && requests.length === 0">
-      <div class="empty-icon">&#128197;</div>
-      <h3>No leave applications yet</h3>
-      <p>Your submitted leave applications will appear here.</p>
-      <button
-        type="button"
-        class="btn-primary"
-        (click)="openForm()"
-        [disabled]="isLoadingTypes || leaveTypes.length === 0">
-        Apply for Leave
-      </button>
-    </div>
-
-    <div class="table-responsive" *ngIf="!isLoading && !hasError && requests.length > 0">
-      <table class="leave-table">
-        <thead>
-          <tr>
-            <th>Leave Type</th>
-            <th>Start Date</th>
-            <th>End Date</th>
-            <th>Days Requested</th>
-            <th>Submitted</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr *ngFor="let request of requests">
-            <td class="leave-type-cell">{{ request.leaveType }}</td>
-            <td>{{ request.startDate | date:'mediumDate' }}</td>
-            <td>{{ request.endDate | date:'mediumDate' }}</td>
-            <td>{{ request.requestedDays }}</td>
-            <td>{{ request.submittedAt | date:'mediumDate' }}</td>
-            <td>
-              <span class="status-badge" [ngClass]="getStatusClass(request.status)">
-                {{ getStatusLabel(request.status) }}
-              </span>
-            </td>
-            <td>
-              <button
-                *ngIf="request.status === status.Pending || request.status === status.Approved"
-                type="button"
-                class="btn-cancel"
-                (click)="cancelRequest(request)">
-                Cancel
-              </button>
-              <span
-                *ngIf="request.status !== status.Pending && request.status !== status.Approved"
-                class="no-action">
-                &mdash;
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <!-- Applications table -->
+    <section class="table-card">
+      @if (isLoading) {
+        <div class="state-box">Loading your leave applications...</div>
+      } @else if (hasError) {
+        <div class="state-box">
+          <h3>Unable to load applications</h3>
+          <p>Please check your connection and try again.</p>
+          <button type="button" class="btn-secondary" (click)="loadRequests()">Try Again</button>
+        </div>
+      } @else if (requests.length === 0) {
+        <div class="state-box">
+          <h3>No leave applications yet</h3>
+          <p>Your submitted leave applications will appear here.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="leave-table">
+            <thead>
+              <tr>
+                <th>Leave No</th>
+                <th>Days Applied</th>
+                <th>Days Approved</th>
+                <th>Start Date</th>
+                <th>Return Date</th>
+                <th>Status</th>
+                <th class="col-actions"><span class="sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (request of requests; track request.id) {
+                <tr>
+                  <td>
+                    <button type="button" class="leave-no" (click)="viewDetails(request)">
+                      <span class="doc-box"><svg class="doc-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span>
+                      <span>{{ leaveNumber(request) }}</span>
+                    </button>
+                  </td>
+                  <td><span class="day-box">{{ request.requestedDays | number:'1.0-1' }}</span></td>
+                  <td>
+                    @if (request.status === status.Approved) {
+                      <span class="day-box approved">{{ request.approvedDays | number:'1.0-1' }}</span>
+                    } @else {
+                      <span class="day-box muted">&ndash;</span>
+                    }
+                  </td>
+                  <td class="date-cell"><svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>{{ request.startDate | date:'dd MMM yy' }}</td>
+                  <td class="date-cell"><svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9.5 15l2 2 3.5-3.5"/></svg>{{ returnDate(request) | date:'dd MMM yy' }}</td>
+                  <td>
+                    <span class="status-pill" [ngClass]="getStatusClass(request.status)">
+                      {{ getStatusLabel(request.status) }}
+                    </span>
+                  </td>
+                  <td class="col-actions">
+                    <div class="kebab">
+                      <button
+                        type="button"
+                        class="kebab-btn"
+                        aria-label="Actions"
+                        aria-haspopup="menu"
+                        [attr.aria-expanded]="openMenuId === request.id"
+                        (click)="toggleMenu(request.id, $event)">
+                        &#8942;
+                      </button>
+                      @if (openMenuId === request.id) {
+                        <div class="kebab-menu" role="menu">
+                          <button type="button" role="menuitem" (click)="viewDetails(request)">
+                            View details
+                          </button>
+                          @if (canCancel(request)) {
+                            <button type="button" role="menuitem" class="danger" (click)="cancelRequest(request)">
+                              Cancel application
+                            </button>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
   </div>
 
-  <div class="modal-backdrop" *ngIf="showForm">
-    <div class="leave-modal" role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
-
-      <div class="modal-header">
-        <div>
-          <span class="page-eyebrow">NEW APPLICATION</span>
-          <h2 id="leave-modal-title">Apply for Leave</h2>
-          <p>Complete the details below to submit your application.</p>
-        </div>
-
-        <button
-          type="button"
-          class="modal-close"
-          aria-label="Close"
-          (click)="closeForm()"
-          [disabled]="isSaving">
-          &times;
-        </button>
-      </div>
-
-      <div class="alert alert-error" *ngIf="errorMessage">
-        {{ errorMessage }}
-      </div>
-
-      <div class="loading-state" *ngIf="isLoadingTypes">
-        Loading available leave types...
-      </div>
-
-      <div class="empty-state" *ngIf="!isLoadingTypes && leaveTypes.length === 0">
-        <p>No active leave types are currently available. Please contact HR.</p>
-      </div>
-
-      <form
-        *ngIf="!isLoadingTypes && leaveTypes.length > 0"
-        #leaveForm="ngForm"
-        (ngSubmit)="submitRequest()">
-
-        <div class="form-group">
-          <label for="leaveTypeId">Leave Type <span class="required">*</span></label>
-          <select
-            id="leaveTypeId"
-            name="leaveTypeId"
-            [(ngModel)]="form.leaveTypeId"
-            required>
-            <option [ngValue]="null" disabled>Select leave type</option>
-            <option *ngFor="let item of leaveTypes" [ngValue]="item.id">
-              {{ item.name }} ({{ item.code }})
-            </option>
-          </select>
-        </div>
-
-        <div class="balance-hint" *ngIf="selectedTypeAvailable !== null"
-             [class.balance-hint-low]="selectedTypeAvailable <= 0">
-          Available this year: <strong>{{ selectedTypeAvailable | number:'1.0-2' }}</strong> day(s).
-          <span *ngIf="selectedTypeAvailable <= 0">
-            You can still apply, but HR may be unable to approve it.
-          </span>
-        </div>
-        <div class="balance-hint" *ngIf="selectedTypeHasNoBalanceRecord">
-          No balance has been recorded for this leave type yet.
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="startDate">Start Date <span class="required">*</span></label>
-            <input
-              id="startDate"
-              type="date"
-              name="startDate"
-              [(ngModel)]="form.startDate"
-              required>
+  <!-- Details dialog -->
+  @if (detailsRequest; as request) {
+    <div class="modal-backdrop" (click)="closeDetails()">
+      <div class="leave-modal" role="dialog" aria-modal="true" aria-labelledby="details-title"
+           (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div>
+            <span class="page-eyebrow">LEAVE APPLICATION</span>
+            <h2 id="details-title">{{ leaveNumber(request) }}</h2>
+            <span class="status-pill" [ngClass]="getStatusClass(request.status)">
+              {{ getStatusLabel(request.status) }}
+            </span>
           </div>
+          <button type="button" class="modal-close" aria-label="Close" (click)="closeDetails()">&times;</button>
+        </div>
 
-          <div class="form-group">
-            <label for="endDate">End Date <span class="required">*</span></label>
-            <input
-              id="endDate"
-              type="date"
-              name="endDate"
-              [(ngModel)]="form.endDate"
-              [min]="form.startDate || null"
-              required>
+        <dl class="detail-grid">
+          <div>
+            <dt>Leave type</dt>
+            <dd>{{ request.leaveType }}</dd>
           </div>
-        </div>
+          <div>
+            <dt>Submitted</dt>
+            <dd>{{ request.submittedAt | date:'medium' }}</dd>
+          </div>
+          <div>
+            <dt>Start date</dt>
+            <dd>{{ request.startDate | date:'fullDate' }}</dd>
+          </div>
+          <div>
+            <dt>Return date</dt>
+            <dd>{{ returnDate(request) | date:'fullDate' }}</dd>
+          </div>
+          <div>
+            <dt>Days applied</dt>
+            <dd>{{ request.requestedDays | number:'1.0-1' }}</dd>
+          </div>
+          <div>
+            <dt>Days approved</dt>
+            <dd>
+              @if (request.status === status.Approved) {
+                {{ request.approvedDays | number:'1.0-1' }}
+              } @else {
+                &ndash;
+              }
+            </dd>
+          </div>
+          <div class="wide">
+            <dt>Reason</dt>
+            <dd class="reason-text">{{ request.reason }}</dd>
+          </div>
+        </dl>
 
-        <div class="form-group">
-          <label for="reason">Reason for Leave <span class="required">*</span></label>
-          <textarea
-            id="reason"
-            name="reason"
-            rows="5"
-            maxlength="2000"
-            minlength="3"
-            [(ngModel)]="form.reason"
-            placeholder="Please explain the reason for your leave application..."
-            required></textarea>
-          <span class="field-hint">Maximum 2,000 characters.</span>
-        </div>
+        @if (request.decisionBy) {
+          <div class="decision-box">
+            <strong>{{ getStatusLabel(request.status) }} by {{ request.decisionBy }}</strong>
+            @if (request.decisionAt) {
+              <span>{{ request.decisionAt | date:'medium' }}</span>
+            }
+            @if (request.decisionRemarks) {
+              <p>{{ request.decisionRemarks }}</p>
+            }
+          </div>
+        }
 
         <div class="modal-actions">
-          <button
-            type="button"
-            class="btn-secondary"
-            (click)="closeForm()"
-            [disabled]="isSaving">
-            Close
-          </button>
+          @if (canCancel(request)) {
+            <button type="button" class="btn-danger" (click)="cancelRequest(request)">
+              Cancel application
+            </button>
+          }
+          <button type="button" class="btn-secondary" (click)="closeDetails()">Close</button>
+        </div>
+      </div>
+    </div>
+  }
 
-          <button
-            type="submit"
-            class="btn-primary"
-            [disabled]="isSaving || leaveForm.invalid">
-            {{ isSaving ? 'Submitting...' : 'Submit Application' }}
+  <!-- Apply dialog -->
+  @if (showForm) {
+    <div class="modal-backdrop">
+      <div class="leave-modal" role="dialog" aria-modal="true" aria-labelledby="leave-modal-title">
+        <div class="modal-header">
+          <div>
+            <span class="page-eyebrow">NEW APPLICATION</span>
+            <h2 id="leave-modal-title">Apply for Leave</h2>
+            <p>Complete the details below to submit your application.</p>
+          </div>
+          <button type="button" class="modal-close" aria-label="Close" (click)="closeForm()" [disabled]="isSaving">
+            &times;
           </button>
         </div>
-      </form>
 
+        @if (errorMessage) {
+          <div class="alert alert-error">{{ errorMessage }}</div>
+        }
+
+        @if (isLoadingTypes) {
+          <div class="state-box">Loading available leave types...</div>
+        } @else if (leaveTypes.length === 0) {
+          <div class="state-box"><p>No active leave types are currently available. Please contact HR.</p></div>
+        } @else {
+          <form #leaveForm="ngForm" (ngSubmit)="submitRequest()">
+            <div class="form-group">
+              <label for="leaveTypeId">Leave Type <span class="required">*</span></label>
+              <select id="leaveTypeId" name="leaveTypeId" [(ngModel)]="form.leaveTypeId" required>
+                <option [ngValue]="null" disabled>Select leave type</option>
+                @for (item of leaveTypes; track item.id) {
+                  <option [ngValue]="item.id">{{ item.name }} ({{ item.code }})</option>
+                }
+              </select>
+            </div>
+
+            @if (selectedTypeAvailable !== null) {
+              <div class="balance-hint" [class.low]="selectedTypeAvailable <= 0">
+                Available this year: <strong>{{ selectedTypeAvailable | number:'1.0-2' }}</strong> day(s).
+                @if (selectedTypeAvailable <= 0) {
+                  <span>You can still apply, but HR may be unable to approve it.</span>
+                }
+              </div>
+            }
+            @if (selectedTypeHasNoBalanceRecord) {
+              <div class="balance-hint">No balance has been recorded for this leave type yet.</div>
+            }
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="startDate">Start Date <span class="required">*</span></label>
+                <input id="startDate" type="date" name="startDate" [(ngModel)]="form.startDate" required>
+              </div>
+              <div class="form-group">
+                <label for="endDate">End Date <span class="required">*</span></label>
+                <input id="endDate" type="date" name="endDate" [(ngModel)]="form.endDate"
+                       [min]="form.startDate || null" required>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="reason">Reason for Leave <span class="required">*</span></label>
+              <textarea id="reason" name="reason" rows="5" maxlength="2000" minlength="3"
+                        [(ngModel)]="form.reason"
+                        placeholder="Please explain the reason for your leave application..."
+                        required></textarea>
+              <span class="field-hint">Maximum 2,000 characters.</span>
+            </div>
+
+            <div class="modal-actions">
+              <button type="button" class="btn-secondary" (click)="closeForm()" [disabled]="isSaving">Close</button>
+              <button type="submit" class="btn-apply" [disabled]="isSaving || leaveForm.invalid">
+                {{ isSaving ? 'Submitting...' : 'Submit Application' }}
+              </button>
+            </div>
+          </form>
+        }
+      </div>
     </div>
-  </div>
-
+  }
 </div>
