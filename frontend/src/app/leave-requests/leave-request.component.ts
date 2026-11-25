@@ -7,11 +7,19 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
+  LeaveBalanceLine,
   LeaveRequest,
   LeaveRequestService,
   LeaveRequestStatus,
   LeaveType
 } from '../services/leave-request.service';
+
+interface BalanceGroup {
+  leaveTypeId: number;
+  leaveType: string;
+  totalAvailable: number;
+  lines: LeaveBalanceLine[];
+}
 
 interface LeaveRequestForm {
   leaveTypeId: number | null;
@@ -34,6 +42,10 @@ export class LeaveRequestComponent implements OnInit {
   readonly status = LeaveRequestStatus;
 
   requests: LeaveRequest[] = [];
+  balances: LeaveBalanceLine[] = [];
+  balanceGroups: BalanceGroup[] = [];
+  balanceYear: number | null = null;
+  balancesLoaded = false;
   leaveTypes: LeaveType[] = [];
 
   isLoading = false;
@@ -50,6 +62,72 @@ export class LeaveRequestComponent implements OnInit {
   ngOnInit(): void {
     this.loadLeaveTypes();
     this.loadRequests();
+    this.loadBalances();
+  }
+
+  loadBalances(): void {
+    this.leaveService.getMyBalances().subscribe({
+      next: response => {
+        this.balances = response.balances ?? [];
+        this.balanceGroups = this.buildBalanceGroups();
+        this.balanceYear = response.leaveYear;
+        this.balancesLoaded = true;
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        // Balances are informational; the page still works without them.
+        console.error('Leave balances loading error:', error);
+        this.balancesLoaded = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  /** Balance cards: one per leave type, with its pay-category lines. */
+  private buildBalanceGroups(): BalanceGroup[] {
+    const groups = new Map<number, BalanceGroup>();
+
+    for (const line of this.balances) {
+      let group = groups.get(line.leaveTypeId);
+      if (!group) {
+        group = {
+          leaveTypeId: line.leaveTypeId,
+          leaveType: line.leaveType,
+          totalAvailable: 0,
+          lines: []
+        };
+        groups.set(line.leaveTypeId, group);
+      }
+      group.totalAvailable += line.availableDays;
+      group.lines.push(line);
+    }
+
+    return Array.from(groups.values());
+  }
+
+  /** Total days available for the leave type chosen in the form. */
+  get selectedTypeAvailable(): number | null {
+    if (!this.form.leaveTypeId || !this.balancesLoaded) {
+      return null;
+    }
+    const lines = this.balances.filter(
+      b => b.leaveTypeId === this.form.leaveTypeId
+    );
+    if (lines.length === 0) {
+      return null;
+    }
+    return lines.reduce((sum, b) => sum + b.availableDays, 0);
+  }
+
+  get selectedTypeHasNoBalanceRecord(): boolean {
+    return !!this.form.leaveTypeId &&
+      this.balancesLoaded &&
+      !this.balances.some(b => b.leaveTypeId === this.form.leaveTypeId);
+  }
+
+  getPayCategoryLabel(line: LeaveBalanceLine): string {
+    const pay = line.payCategory === 'HalfPay' ? 'Half pay' : 'Full pay';
+    return line.source === 'CarryForward' ? `${pay} (carried forward)` : pay;
   }
 
   private emptyForm(): LeaveRequestForm {
@@ -152,6 +230,7 @@ export class LeaveRequestComponent implements OnInit {
         this.message =
           response.message || 'Leave application submitted successfully.';
         this.loadRequests();
+        this.loadBalances();
         this.cdr.detectChanges();
       },
       error: error => {
@@ -186,6 +265,7 @@ export class LeaveRequestComponent implements OnInit {
         this.message =
           response.message || 'Leave application cancelled successfully.';
         this.loadRequests();
+        this.loadBalances();
         this.cdr.detectChanges();
       },
       error: error => {

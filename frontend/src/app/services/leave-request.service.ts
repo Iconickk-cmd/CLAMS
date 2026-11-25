@@ -64,6 +64,25 @@ export interface CreateLeaveRequestResponse {
   status: LeaveRequestStatus;
 }
 
+export interface LeaveBalanceLine {
+  leaveTypeId: number;
+  leaveType: string;
+  source: 'CurrentYear' | 'CarryForward';
+  payCategory: 'FullPay' | 'HalfPay';
+  annualEntitlementDays: number;
+  accruedDays: number;
+  takenDays: number;
+  adjustmentDays: number;
+  availableDays: number;
+  expiresOn?: string | null;
+}
+
+export interface LeaveBalancesResponse {
+  leaveYear: number;
+  asOf: string;
+  balances: LeaveBalanceLine[];
+}
+
 export interface LeaveRequestDetails extends LeaveRequest {
   allocations: unknown[];
   approvalHistory: unknown[];
@@ -86,6 +105,12 @@ export class LeaveRequestService {
   getLeaveRequest(id: number): Observable<LeaveRequestDetails> {
     return this.http.get<LeaveRequestDetails>(
       `${this.apiUrl}/LeaveRequests/${id}`
+    );
+  }
+
+  getMyBalances(): Observable<LeaveBalancesResponse> {
+    return this.http.get<LeaveBalancesResponse>(
+      `${this.apiUrl}/LeaveBalances/me`
     );
   }
 

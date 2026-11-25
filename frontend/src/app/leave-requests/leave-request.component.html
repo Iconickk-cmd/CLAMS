@@ -42,6 +42,30 @@
     </div>
   </div>
 
+  <div class="balances-section" *ngIf="balancesLoaded && balanceGroups.length > 0">
+    <h2 class="balances-title">
+      My Leave Balances <span class="balances-year">{{ balanceYear }}</span>
+    </h2>
+    <div class="balance-grid">
+      <div class="balance-card" *ngFor="let group of balanceGroups">
+        <span class="summary-label">{{ group.leaveType }}</span>
+        <strong>{{ group.totalAvailable | number:'1.0-2' }}</strong>
+        <span class="summary-description">days available</span>
+        <ul class="balance-lines">
+          <li *ngFor="let line of group.lines">
+            <span>{{ getPayCategoryLabel(line) }}</span>
+            <span>
+              {{ line.availableDays | number:'1.0-2' }}
+              <small *ngIf="line.expiresOn">
+                (expires {{ line.expiresOn | date:'mediumDate' }})
+              </small>
+            </span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
   <div class="alert alert-success" *ngIf="message">
     {{ message }}
   </div>
@@ -62,7 +86,7 @@
         class="btn-secondary"
         (click)="loadRequests()"
         [disabled]="isLoading">
-        <span *ngIf="!isLoading">?</span>
+        <span *ngIf="!isLoading">&#8635;</span>
         {{ isLoading ? 'Refreshing...' : 'Refresh' }}
       </button>
     </div>
@@ -80,7 +104,7 @@
     </div>
 
     <div class="empty-state" *ngIf="!isLoading && !hasError && requests.length === 0">
-      <div class="empty-icon">??</div>
+      <div class="empty-icon">&#128197;</div>
       <h3>No leave applications yet</h3>
       <p>Your submitted leave applications will appear here.</p>
       <button
@@ -129,7 +153,7 @@
               <span
                 *ngIf="request.status !== status.Pending && request.status !== status.Approved"
                 class="no-action">
-                —
+                &mdash;
               </span>
             </td>
           </tr>
@@ -154,7 +178,7 @@
           aria-label="Close"
           (click)="closeForm()"
           [disabled]="isSaving">
-          ×
+          &times;
         </button>
       </div>
 
@@ -187,6 +211,17 @@
               {{ item.name }} ({{ item.code }})
             </option>
           </select>
+        </div>
+
+        <div class="balance-hint" *ngIf="selectedTypeAvailable !== null"
+             [class.balance-hint-low]="selectedTypeAvailable <= 0">
+          Available this year: <strong>{{ selectedTypeAvailable | number:'1.0-2' }}</strong> day(s).
+          <span *ngIf="selectedTypeAvailable <= 0">
+            You can still apply, but HR may be unable to approve it.
+          </span>
+        </div>
+        <div class="balance-hint" *ngIf="selectedTypeHasNoBalanceRecord">
+          No balance has been recorded for this leave type yet.
         </div>
 
         <div class="form-row">

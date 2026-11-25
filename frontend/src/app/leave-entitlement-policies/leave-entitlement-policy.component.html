@@ -178,7 +178,7 @@
               <strong *ngIf="item.leaveTypeCode === 'SL'">
                 {{ item.halfPayEntitlementDays | number:'1.0-3' }}
               </strong>
-              <span *ngIf="item.leaveTypeCode !== 'SL'">—</span>
+              <span *ngIf="item.leaveTypeCode !== 'SL'">&mdash;</span>
               <small *ngIf="item.leaveTypeCode === 'SL'">half-pay days per year</small>
             </td>
 

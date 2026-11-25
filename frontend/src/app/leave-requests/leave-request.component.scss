@@ -460,3 +460,81 @@
     }
   }
 }
+
+.balances-section {
+  margin-bottom: 24px;
+}
+
+.balances-title {
+  margin: 0 0 12px;
+  color: #172b4d;
+  font-size: 16px;
+  font-weight: 700;
+
+  .balances-year {
+    margin-left: 6px;
+    color: #718096;
+    font-size: 13px;
+    font-weight: 600;
+  }
+}
+
+.balance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 16px;
+}
+
+.balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #e5eaf0;
+  border-left: 4px solid #2867b2;
+  border-radius: 9px;
+  box-shadow: 0 2px 7px rgba(25, 42, 70, 0.04);
+
+  strong {
+    color: #172b4d;
+    font-size: 28px;
+    line-height: 1.1;
+  }
+}
+
+.balance-lines {
+  margin: 8px 0 0;
+  padding: 10px 0 0;
+  list-style: none;
+  border-top: 1px solid #edf1f6;
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 2px 0;
+    color: #4a5a72;
+    font-size: 12px;
+  }
+
+  small {
+    color: #8a6d1d;
+  }
+}
+
+.balance-hint {
+  margin: -6px 0 16px;
+  padding: 9px 12px;
+  background: #eef5fc;
+  border: 1px solid #d3e3f6;
+  border-radius: 6px;
+  color: #2b4a73;
+  font-size: 12.5px;
+
+  &.balance-hint-low {
+    background: #fff7e6;
+    border-color: #f3dca8;
+    color: #7a5a12;
+  }
+}
