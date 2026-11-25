@@ -10,6 +10,7 @@ import { PositionAssignmentComponent } from './position-assignments/position-ass
 import { LeaveTypeComponent } from './leave-types/leave-type.component';
 import { LeaveEntitlementPolicyComponent } from './leave-entitlement-policies/leave-entitlement-policy.component';
 import { LeaveRequestComponent } from './leave-requests/leave-request.component';
+import { LeaveApprovalComponent } from './leave-approvals/leave-approval.component';
 import { AccessDeniedComponent } from './access-denied/access-denied.component';
 
 import { roleGuard } from './guards/role.guard';
@@ -116,6 +117,15 @@ export const routes: Routes = [
     }
   },
 
+  {
+    path: 'leave-approvals',
+    component: LeaveApprovalComponent,
+    canActivate: [roleGuard],
+    data: {
+      title: 'Leave Approvals',
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer']
+    }
+  },
   {
     path: '**',
     redirectTo: ''

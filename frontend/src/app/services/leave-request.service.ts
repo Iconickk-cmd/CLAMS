@@ -108,6 +108,41 @@ export class LeaveRequestService {
     );
   }
 
+  // HR roles receive every employee's requests from this endpoint.
+  getAllRequests(): Observable<LeaveRequestListResponse> {
+    return this.http.get<LeaveRequestListResponse>(
+      `${this.apiUrl}/LeaveRequests`
+    );
+  }
+
+  approveLeaveRequest(
+    id: number,
+    remarks?: string
+  ): Observable<{ message: string; approvedDays: number }> {
+    return this.http.post<{ message: string; approvedDays: number }>(
+      `${this.apiUrl}/LeaveRequests/${id}/approve`,
+      { remarks: remarks ?? null }
+    );
+  }
+
+  rejectLeaveRequest(
+    id: number,
+    remarks?: string
+  ): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(
+      `${this.apiUrl}/LeaveRequests/${id}/reject`,
+      { remarks: remarks ?? null }
+    );
+  }
+
+  getEmployeeBalances(
+    employeeId: number
+  ): Observable<LeaveBalancesResponse> {
+    return this.http.get<LeaveBalancesResponse>(
+      `${this.apiUrl}/LeaveBalances/employee/${employeeId}`
+    );
+  }
+
   getMyBalances(): Observable<LeaveBalancesResponse> {
     return this.http.get<LeaveBalancesResponse>(
       `${this.apiUrl}/LeaveBalances/me`

@@ -1,0 +1,275 @@
+<div class="approval-page">
+  <div class="page-header">
+    <div>
+      <span class="page-eyebrow">LEAVE MANAGEMENT</span>
+      <h1>Leave Approvals</h1>
+      <p>Review leave applications and approve or reject them.</p>
+    </div>
+    <button
+      type="button"
+      class="btn-secondary"
+      (click)="loadRequests()"
+      [disabled]="isLoading">
+      {{ isLoading ? 'Refreshing...' : 'Refresh' }}
+    </button>
+  </div>
+
+  @if (message) {
+    <div class="alert alert-success">{{ message }}</div>
+  }
+  @if (errorMessage && hasError) {
+    <div class="alert alert-error">{{ errorMessage }}</div>
+  }
+
+  <div class="toolbar">
+    <div class="filter-tabs" role="tablist">
+      @for (filter of filters; track filter.key) {
+        <button
+          type="button"
+          role="tab"
+          class="filter-tab"
+          [class.active]="activeFilter === filter.key"
+          (click)="setFilter(filter.key)">
+          {{ filter.label }}
+          <span class="tab-count">{{ countFor(filter.key) }}</span>
+        </button>
+      }
+    </div>
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Search employee or leave type"
+      [(ngModel)]="searchText"
+      name="searchText">
+  </div>
+
+  <div class="table-card">
+    @if (isLoading) {
+      <div class="state-box">Loading leave requests...</div>
+    } @else if (hasError) {
+      <div class="state-box">
+        <h3>Unable to load leave requests</h3>
+        <button type="button" class="btn-secondary" (click)="loadRequests()">
+          Try Again
+        </button>
+      </div>
+    } @else if (filteredRequests.length === 0) {
+      <div class="state-box">
+        <h3>Nothing to show</h3>
+        <p>
+          @if (activeFilter === 'pending' && !searchText) {
+            There are no pending leave requests.
+          } @else {
+            No leave requests match this view.
+          }
+        </p>
+      </div>
+    } @else {
+      <div class="table-responsive">
+        <table class="approval-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Leave Type</th>
+              <th>Dates</th>
+              <th>Days</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (request of filteredRequests; track request.id) {
+              <tr>
+                <td class="strong-cell">
+                  {{ request.employeeName }}
+                  @if (isOwnRequest(request)) {
+                    <span class="own-tag">You</span>
+                  }
+                </td>
+                <td>{{ request.leaveType }}</td>
+                <td>
+                  {{ request.startDate | date:'mediumDate' }}
+                  &ndash;
+                  {{ request.endDate | date:'mediumDate' }}
+                </td>
+                <td>{{ request.requestedDays }}</td>
+                <td>{{ request.submittedAt | date:'mediumDate' }}</td>
+                <td>
+                  <span class="status-badge" [ngClass]="getStatusClass(request.status)">
+                    {{ getStatusLabel(request.status) }}
+                  </span>
+                </td>
+                <td class="action-cell">
+                  <button
+                    type="button"
+                    class="btn-review"
+                    (click)="openReview(request)">
+                    {{ request.status === status.Pending ? 'Review' : 'View' }}
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  @if (selected; as request) {
+    <div class="modal-backdrop">
+      <div class="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-title">
+        <div class="modal-header">
+          <div>
+            <span class="page-eyebrow">LEAVE REQUEST #{{ request.id }}</span>
+            <h2 id="review-title">{{ request.employeeName }}</h2>
+            <span class="status-badge" [ngClass]="getStatusClass(request.status)">
+              {{ getStatusLabel(request.status) }}
+            </span>
+          </div>
+          <button
+            type="button"
+            class="modal-close"
+            aria-label="Close"
+            (click)="closeReview()"
+            [disabled]="isProcessing">
+            &times;
+          </button>
+        </div>
+
+        @if (modalError) {
+          <div class="alert alert-error">{{ modalError }}</div>
+        }
+
+        <dl class="detail-grid">
+          <div>
+            <dt>Leave type</dt>
+            <dd>{{ request.leaveType }}</dd>
+          </div>
+          <div>
+            <dt>Working days requested</dt>
+            <dd>{{ request.requestedDays }}</dd>
+          </div>
+          <div>
+            <dt>From</dt>
+            <dd>{{ request.startDate | date:'fullDate' }}</dd>
+          </div>
+          <div>
+            <dt>To</dt>
+            <dd>{{ request.endDate | date:'fullDate' }}</dd>
+          </div>
+          <div class="wide">
+            <dt>Submitted</dt>
+            <dd>{{ request.submittedAt | date:'medium' }}</dd>
+          </div>
+          <div class="wide">
+            <dt>Reason</dt>
+            <dd class="reason-text">{{ request.reason }}</dd>
+          </div>
+        </dl>
+
+        <div class="balance-panel">
+          <h3>{{ request.leaveType }} balance for this employee</h3>
+          @if (balancesState === 'loading') {
+            <p class="muted">Loading balance...</p>
+          } @else if (balancesState === 'failed') {
+            <p class="muted">The balance could not be loaded.</p>
+          } @else if (selectedTypeLines.length === 0) {
+            <p class="muted">No balance has been recorded for this leave type this year.</p>
+          } @else {
+            <ul class="balance-lines">
+              @for (line of selectedTypeLines; track $index) {
+                <li>
+                  <span>{{ getPayCategoryLabel(line) }}</span>
+                  <span>
+                    {{ line.availableDays | number:'1.0-2' }} day(s)
+                    @if (line.expiresOn) {
+                      <small>(expires {{ line.expiresOn | date:'mediumDate' }})</small>
+                    }
+                  </span>
+                </li>
+              }
+              <li class="balance-total">
+                <span>Total available</span>
+                <span>{{ selectedAvailable | number:'1.0-2' }} day(s)</span>
+              </li>
+            </ul>
+            @if (hasInsufficientBalance && request.status === status.Pending) {
+              <p class="warning-text">
+                This balance is lower than the {{ request.requestedDays }} day(s) requested.
+                Approval may fail.
+              </p>
+            }
+            <p class="muted small">
+              Guide only. When you approve, each leave day is checked against
+              the balance for that day's year.
+            </p>
+          }
+        </div>
+
+        @if (request.status === status.Pending) {
+          @if (isOwnRequest(request)) {
+            <div class="alert alert-warning">
+              This is your own leave request. Another HR user must decide it.
+            </div>
+          }
+
+          <div class="form-group">
+            <label for="remarks">Remarks</label>
+            <textarea
+              id="remarks"
+              name="remarks"
+              rows="3"
+              maxlength="1000"
+              [(ngModel)]="remarks"
+              [disabled]="isProcessing || isOwnRequest(request)"
+              placeholder="Optional for approval. Required when rejecting."></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="btn-secondary"
+              (click)="closeReview()"
+              [disabled]="isProcessing">
+              Close
+            </button>
+            <button
+              type="button"
+              class="btn-reject"
+              (click)="reject()"
+              [disabled]="isProcessing || isOwnRequest(request)">
+              Reject
+            </button>
+            <button
+              type="button"
+              class="btn-approve"
+              (click)="approve()"
+              [disabled]="isProcessing || isOwnRequest(request)">
+              {{ isProcessing ? 'Working...' : 'Approve' }}
+            </button>
+          </div>
+        } @else {
+          @if (request.decisionBy) {
+            <div class="decision-box">
+              <strong>
+                {{ getStatusLabel(request.status) }} by {{ request.decisionBy }}
+              </strong>
+              @if (request.decisionAt) {
+                <span>{{ request.decisionAt | date:'medium' }}</span>
+              }
+              @if (request.decisionRemarks) {
+                <p>{{ request.decisionRemarks }}</p>
+              }
+            </div>
+          }
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="closeReview()">
+              Close
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>

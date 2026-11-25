@@ -177,6 +177,13 @@
         Leave Entitlement Policies
       </a>
 
+      @if (canApproveLeave) {
+        <a routerLink="/leave-approvals" routerLinkActive="active">
+          <span class="menu-icon">&#9989;</span>
+          Leave Approvals
+        </a>
+      }
+
     </nav>
 
     <div class="sidebar-bottom">
@@ -414,6 +421,14 @@
           <strong>Leave Entitlement Policies</strong>
           <span>Configure employee leave entitlement rules</span>
         </a>
+
+        @if (canApproveLeave) {
+          <a routerLink="/leave-approvals" class="quick-card">
+            <span class="quick-icon">&#9989;</span>
+            <strong>Leave Approvals</strong>
+            <span>Review and decide employee leave requests</span>
+          </a>
+        }
 
       </div>
 

@@ -78,6 +78,12 @@ export class DashboardComponent implements OnInit {
     return roles.includes('Employee') &&
       !roles.some(role => administrativeRoles.includes(role));
   }
+  get canApproveLeave(): boolean {
+    const roles = this.currentUser?.roles ?? [];
+    return ['SystemAdministrator', 'HRManager', 'HROfficer']
+      .some(role => roles.includes(role));
+  }
+
   ngOnInit(): void {
     if (this.isEmployeeOnly) {
       this.isLoading = false;
