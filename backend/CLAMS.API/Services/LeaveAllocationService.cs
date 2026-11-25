@@ -3,6 +3,7 @@ using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace CLAMS.API.Services;
 
@@ -13,6 +14,9 @@ public sealed record LeaveApprovalResult(
 
 public class LeaveAllocationService
 {
+    public const string SelfApprovalMessage =
+        "You cannot approve your own leave request.";
+
     private readonly CLAMSHRDbContext _context;
     private readonly WorkingDayCalculator _workingDayCalculator;
 
@@ -28,6 +32,7 @@ public class LeaveAllocationService
         int leaveRequestId,
         string actorName,
         string? remarks = null,
+        int? actorEmployeeId = null,
         CancellationToken cancellationToken = default)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync(
@@ -47,6 +52,10 @@ public class LeaveAllocationService
 
             if (request.Status != LeaveRequestStatus.Pending)
                 return new(false, "Only pending leave requests can be approved.");
+
+            if (actorEmployeeId.HasValue &&
+                request.EmployeeId == actorEmployeeId.Value)
+                return new(false, SelfApprovalMessage);
 
             var workingDates = await _workingDayCalculator.GetWorkingDatesAsync(
                 request.StartDate,
@@ -258,7 +267,13 @@ public class LeaveAllocationService
                 "Leave request approved and leave balances allocated.",
                 approvedDays);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (Exception ex) when (
+            ex is DbUpdateConcurrencyException ||
+            (ex is PostgresException pg &&
+                (pg.SqlState == "40001" || pg.SqlState == "40P01")) ||
+            (ex is DbUpdateException db &&
+                db.InnerException is PostgresException inner &&
+                (inner.SqlState == "40001" || inner.SqlState == "40P01")))
         {
             await transaction.RollbackAsync(cancellationToken);
             return new(

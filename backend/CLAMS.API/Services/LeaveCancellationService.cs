@@ -52,7 +52,7 @@ public class LeaveCancellationService
                     "Only pending or approved leave requests can be cancelled.");
             }
 
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var today = BusinessClock.Today;
 
             if (request.Status == LeaveRequestStatus.Approved &&
                 request.StartDate <= today)

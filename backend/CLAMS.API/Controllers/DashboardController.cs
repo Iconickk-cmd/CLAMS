@@ -8,7 +8,7 @@ namespace CLAMS.API.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles = "SystemAdministrator,HRManager")]
+[Authorize(Roles = "SystemAdministrator,HRManager,HROfficer,Management,ReadOnly")]
 public class DashboardController : ControllerBase
 {
     private readonly CLAMSHRDbContext _context;
@@ -21,7 +21,7 @@ public class DashboardController : ControllerBase
     [HttpGet("statistics")]
     public async Task<IActionResult> GetStatistics()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = CLAMS.API.Services.BusinessClock.Today;
 
         var totalEmployees = await _context.Employees
             .CountAsync();

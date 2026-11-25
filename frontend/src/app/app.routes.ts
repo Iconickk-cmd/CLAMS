@@ -36,7 +36,7 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [roleGuard],
     data: {
-      roles: ['SystemAdministrator', 'HRManager', 'Employee']
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly', 'Employee']
     }
   },
 
@@ -45,7 +45,7 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [roleGuard],
     data: {
-      roles: ['SystemAdministrator', 'HRManager', 'Employee']
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly', 'Employee']
     }
   },
 

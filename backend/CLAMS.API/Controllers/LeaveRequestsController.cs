@@ -186,7 +186,7 @@ public class LeaveRequestsController : ControllerBase
                 message = "The start date cannot be after the end date."
             });
 
-        if (dto.StartDate < DateOnly.FromDateTime(DateTime.UtcNow))
+        if (dto.StartDate < BusinessClock.Today)
             return BadRequest(new
             {
                 message = "Leave dates cannot be in the past."
@@ -290,10 +290,15 @@ public class LeaveRequestsController : ControllerBase
     {
         var actorName = User.Identity?.Name ?? "HR Administrator";
 
+        int? actorEmployeeId = TryGetEmployeeId(out var actingEmployeeId)
+            ? actingEmployeeId
+            : null;
+
         var result = await _allocationService.ApproveAsync(
             id,
             actorName,
             dto?.Remarks,
+            actorEmployeeId,
             cancellationToken);
 
         if (!result.Success)
@@ -303,6 +308,11 @@ public class LeaveRequestsController : ControllerBase
 
             if (result.Message == "Only pending leave requests can be approved.")
                 return Conflict(new { message = result.Message });
+
+            if (result.Message == LeaveAllocationService.SelfApprovalMessage)
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    new { message = result.Message });
 
             return BadRequest(new { message = result.Message });
         }
@@ -341,6 +351,12 @@ public class LeaveRequestsController : ControllerBase
             {
                 message = "Only pending leave requests can be rejected."
             });
+
+        if (TryGetEmployeeId(out var rejectingEmployeeId) &&
+            request.EmployeeId == rejectingEmployeeId)
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                new { message = "You cannot reject your own leave request." });
 
         request.Status = LeaveRequestStatus.Rejected;
         request.DecisionAt = DateTime.UtcNow;
