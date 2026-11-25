@@ -1,4 +1,4 @@
-﻿
+
 using System.Data;
 using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
@@ -141,11 +141,7 @@ public class MonthlyLeaveAccrualService : BackgroundService
                 employee.DateOfEmployment,
                 today);
 
-            if (completedMonths <= 0)
-            {
-                await transaction.CommitAsync(cancellationToken);
-                return;
-            }
+
 
             var policies = await context.LeaveEntitlementPolicies
                 .Include(p => p.LeaveType)
@@ -153,7 +149,6 @@ public class MonthlyLeaveAccrualService : BackgroundService
                     p.IsActive &&
                     p.LeaveType.IsActive &&
                     p.LeaveType.IsPaid &&
-                    p.AccruesMonthly &&
                     (p.EmployeeId == employee.Id ||
                      (p.EmployeeId == null &&
                       p.EmploymentType == employee.EmploymentType)))
@@ -177,7 +172,7 @@ public class MonthlyLeaveAccrualService : BackgroundService
                 .ToListAsync(cancellationToken);
 
             var balanceCache = existingBalances.ToDictionary(
-                b => (b.LeaveTypeId, b.LeaveYear));
+                b => (b.LeaveTypeId, b.LeaveYear, b.PayCategory));
 
             var existingAccruals = await context.LeaveAccrualTransactions
                 .Where(t =>
@@ -188,7 +183,9 @@ public class MonthlyLeaveAccrualService : BackgroundService
                 {
                     t.EmployeeLeaveBalance.LeaveTypeId,
                     t.EmployeeLeaveBalance.LeaveYear,
-                    t.AccrualDate
+                    t.EmployeeLeaveBalance.PayCategory,
+                    t.AccrualDate,
+                    t.CompletedServiceMonths
                 })
                 .ToListAsync(cancellationToken);
 
@@ -196,7 +193,16 @@ public class MonthlyLeaveAccrualService : BackgroundService
                 .Select(a => (
                     a.LeaveTypeId,
                     a.LeaveYear,
+                    a.PayCategory,
                     a.AccrualDate))
+                .ToHashSet();
+
+            var processedAnnualCredits = existingAccruals
+                .Where(a => a.CompletedServiceMonths == 0)
+                .Select(a => (
+                    a.LeaveTypeId,
+                    a.LeaveYear,
+                    a.PayCategory))
                 .ToHashSet();
 
             for (var month = 1; month <= completedMonths; month++)
@@ -220,76 +226,244 @@ public class MonthlyLeaveAccrualService : BackgroundService
                         accrualDate);
 
                     if (applicablePolicy == null ||
-                        applicablePolicy.AnnualEntitlementDays <= 0)
-                    {
-                        continue;
-                    }
-
-                    var accrualKey = (
-                        leaveTypeId,
-                        leaveYear,
-                        accrualDate);
-
-                    if (processedAccruals.Contains(accrualKey))
+                        !applicablePolicy.AccruesMonthly)
                         continue;
 
-                    var balanceKey = (leaveTypeId, leaveYear);
-
-                    if (!balanceCache.TryGetValue(
-                            balanceKey,
-                            out var balance))
+                    foreach (var payCategory in Enum.GetValues<PayCategory>())
                     {
-                        balance = new EmployeeLeaveBalance
+                        var annualEntitlementDays = payCategory switch
                         {
-                            EmployeeId = employee.Id,
-                            LeaveTypeId = leaveTypeId,
-                            LeaveYear = leaveYear,
-                            AnnualEntitlementDays =
+                            PayCategory.FullPay =>
                                 applicablePolicy.AnnualEntitlementDays,
-                            AccruedDays = 0m,
-                            TakenDays = 0m,
-                            AdjustmentDays = 0m,
-                            CreatedAt = DateTime.UtcNow
+
+                            PayCategory.HalfPay =>
+                                applicablePolicy.HalfPayEntitlementDays,
+
+                            _ => 0m
                         };
 
-                        context.EmployeeLeaveBalances.Add(balance);
-                        balanceCache.Add(balanceKey, balance);
+                        if (annualEntitlementDays <= 0)
+                            continue;
+
+                        var accrualKey = (
+                            leaveTypeId,
+                            leaveYear,
+                            payCategory,
+                            accrualDate);
+
+                        if (processedAccruals.Contains(accrualKey))
+                            continue;
+
+                        var balanceKey = (
+                            leaveTypeId,
+                            leaveYear,
+                            payCategory);
+
+                        if (!balanceCache.TryGetValue(
+                                balanceKey,
+                                out var balance))
+                        {
+                            balance = new EmployeeLeaveBalance
+                            {
+                                EmployeeId = employee.Id,
+                                LeaveTypeId = leaveTypeId,
+                                LeaveYear = leaveYear,
+                                PayCategory = payCategory,
+                                AnnualEntitlementDays = annualEntitlementDays,
+                                AccruedDays = 0m,
+                                TakenDays = 0m,
+                                AdjustmentDays = 0m,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            context.EmployeeLeaveBalances.Add(balance);
+                            balanceCache.Add(balanceKey, balance);
+                        }
+
+                        var daysAccrued = CalculateAccrualDays(
+                            employee.DateOfEmployment,
+                            month,
+                            applicablePolicy,
+                            annualEntitlementDays,
+                            policies,
+                            leaveTypeId,
+                            employee.Id);
+
+                        if (daysAccrued <= 0)
+                            continue;
+
+                        balance.AccruedDays += daysAccrued;
+                        balance.LastAccruedOn = accrualDate;
+                        balance.UpdatedAt = DateTime.UtcNow;
+
+                        context.LeaveAccrualTransactions.Add(
+                            new LeaveAccrualTransaction
+                            {
+                                EmployeeLeaveBalance = balance,
+                                AccrualDate = accrualDate,
+                                CompletedServiceMonths = month,
+                                DaysAccrued = daysAccrued,
+                                CreatedAt = DateTime.UtcNow
+                            });
+
+                        processedAccruals.Add(accrualKey);
+
+                        _logger.LogInformation(
+                            "Accrued {Days} days for employee {EmployeeNumber}, leave type {LeaveTypeId}, pay category {PayCategory}, service month {ServiceMonth}, accrual date {AccrualDate}.",
+                            daysAccrued,
+                            employee.EmployeeNumber,
+                            leaveTypeId,
+                            payCategory,
+                            month,
+                            accrualDate);
+                    }
+                }
+            }
+            // Process annual (non-monthly) entitlements once per calendar year.
+            for (var year = employee.DateOfEmployment.Year;
+                 year <= today.Year;
+                 year++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var firstMonth = year == employee.DateOfEmployment.Year
+                    ? employee.DateOfEmployment.Month
+                    : 1;
+
+                var lastMonth = year == today.Year
+                    ? today.Month
+                    : 12;
+
+                foreach (var leaveTypeId in leaveTypeIds)
+                {
+                    var annualEntitlementByCategory =
+                        Enum.GetValues<PayCategory>()
+                            .ToDictionary(category => category, _ => 0m);
+
+                    for (var calendarMonth = firstMonth;
+                         calendarMonth <= lastMonth;
+                         calendarMonth++)
+                    {
+                        var monthStart = new DateOnly(
+                            year, calendarMonth, 1);
+
+                        var monthEnd = new DateOnly(
+                            year,
+                            calendarMonth,
+                            DateTime.DaysInMonth(year, calendarMonth));
+
+                        if (monthEnd > today)
+                            monthEnd = today;
+
+                        var applicablePolicy = GetApplicablePolicyForMonth(
+                            policies,
+                            leaveTypeId,
+                            employee.Id,
+                            monthStart,
+                            monthEnd);
+
+                        if (applicablePolicy == null ||
+                            applicablePolicy.AccruesMonthly)
+                            continue;
+
+                        foreach (var payCategory in Enum.GetValues<PayCategory>())
+                        {
+                            var annualEntitlement = payCategory switch
+                            {
+                                PayCategory.FullPay =>
+                                    applicablePolicy.AnnualEntitlementDays,
+
+                                PayCategory.HalfPay =>
+                                    applicablePolicy.HalfPayEntitlementDays,
+
+                                _ => 0m
+                            };
+
+                            if (annualEntitlement > 0m)
+                            {
+                                annualEntitlementByCategory[payCategory] +=
+                                    annualEntitlement / 12m;
+                            }
+                        }
                     }
 
-                    var daysAccrued = CalculateAccrualDays(
-                        employee.DateOfEmployment,
-                        month,
-                        applicablePolicy,
-                        policies,
-                        leaveTypeId,
-                        employee.Id);
+                    foreach (var payCategory in Enum.GetValues<PayCategory>())
+                    {
+                        var annualEntitlementDays = decimal.Round(
+                            annualEntitlementByCategory[payCategory],
+                            6,
+                            MidpointRounding.AwayFromZero);
 
-                    if (daysAccrued <= 0)
-                        continue;
+                        if (annualEntitlementDays <= 0m)
+                            continue;
 
-                    balance.AccruedDays += daysAccrued;
-                    balance.LastAccruedOn = accrualDate;
-                    balance.UpdatedAt = DateTime.UtcNow;
+                        var annualKey = (
+                            leaveTypeId,
+                            year,
+                            payCategory);
 
-                    context.LeaveAccrualTransactions.Add(
-                        new LeaveAccrualTransaction
+                        if (processedAnnualCredits.Contains(annualKey))
+                            continue;
+
+                        var balanceKey = (
+                            leaveTypeId,
+                            year,
+                            payCategory);
+
+                        if (!balanceCache.TryGetValue(
+                                balanceKey,
+                                out var balance))
                         {
-                            EmployeeLeaveBalance = balance,
-                            AccrualDate = accrualDate,
-                            CompletedServiceMonths = month,
-                            DaysAccrued = daysAccrued,
-                            CreatedAt = DateTime.UtcNow
-                        });
+                            balance = new EmployeeLeaveBalance
+                            {
+                                EmployeeId = employee.Id,
+                                LeaveTypeId = leaveTypeId,
+                                LeaveYear = year,
+                                PayCategory = payCategory,
+                                AnnualEntitlementDays = annualEntitlementDays,
+                                AccruedDays = 0m,
+                                TakenDays = 0m,
+                                AdjustmentDays = 0m,
+                                CreatedAt = DateTime.UtcNow
+                            };
 
-                    processedAccruals.Add(accrualKey);
+                            context.EmployeeLeaveBalances.Add(balance);
+                            balanceCache.Add(balanceKey, balance);
+                        }
+                        else
+                        {
+                            balance.AnnualEntitlementDays =
+                                annualEntitlementDays;
+                        }
 
-                    _logger.LogInformation(
-                        "Accrued {Days} days for employee {EmployeeNumber}, leave type {LeaveTypeId}, service month {ServiceMonth}, accrual date {AccrualDate}.",
-                        daysAccrued,
-                        employee.EmployeeNumber,
-                        leaveTypeId,
-                        month,
-                        accrualDate);
+                        var creditDate = year == today.Year
+                            ? today
+                            : new DateOnly(year, 12, 31);
+
+                        balance.AccruedDays += annualEntitlementDays;
+                        balance.LastAccruedOn = creditDate;
+                        balance.UpdatedAt = DateTime.UtcNow;
+
+                        context.LeaveAccrualTransactions.Add(
+                            new LeaveAccrualTransaction
+                            {
+                                EmployeeLeaveBalance = balance,
+                                AccrualDate = creditDate,
+                                CompletedServiceMonths = 0,
+                                DaysAccrued = annualEntitlementDays,
+                                CreatedAt = DateTime.UtcNow
+                            });
+
+                        processedAnnualCredits.Add(annualKey);
+
+                        _logger.LogInformation(
+                            "Credited {Days} annual entitlement days for employee {EmployeeNumber}, leave type {LeaveTypeId}, pay category {PayCategory}, leave year {LeaveYear}.",
+                            annualEntitlementDays,
+                            employee.EmployeeNumber,
+                            leaveTypeId,
+                            payCategory,
+                            year);
+                    }
                 }
             }
 
@@ -313,6 +487,25 @@ public class MonthlyLeaveAccrualService : BackgroundService
         }
     }
 
+    private static LeaveEntitlementPolicy? GetApplicablePolicyForMonth(
+        List<LeaveEntitlementPolicy> policies,
+        int leaveTypeId,
+        int employeeId,
+        DateOnly monthStart,
+        DateOnly monthEnd)
+    {
+        return policies
+            .Where(p =>
+                p.LeaveTypeId == leaveTypeId &&
+                !p.AccruesMonthly &&
+                p.EffectiveFrom <= monthEnd &&
+                (!p.EffectiveTo.HasValue ||
+                 p.EffectiveTo.Value >= monthStart))
+            .OrderByDescending(p => p.EmployeeId == employeeId)
+            .ThenByDescending(p => p.EffectiveFrom)
+            .ThenByDescending(p => p.Id)
+            .FirstOrDefault();
+    }
     private static LeaveEntitlementPolicy? GetApplicablePolicy(
         List<LeaveEntitlementPolicy> policies,
         int leaveTypeId,
@@ -322,6 +515,7 @@ public class MonthlyLeaveAccrualService : BackgroundService
         return policies
             .Where(p =>
                 p.LeaveTypeId == leaveTypeId &&
+                p.AccruesMonthly &&
                 p.EffectiveFrom <= accrualDate &&
                 (!p.EffectiveTo.HasValue ||
                  p.EffectiveTo.Value >= accrualDate))
@@ -335,22 +529,20 @@ public class MonthlyLeaveAccrualService : BackgroundService
         DateOnly employmentDate,
         int completedMonths,
         LeaveEntitlementPolicy applicablePolicy,
+        decimal annualEntitlementDays,
         List<LeaveEntitlementPolicy> policies,
         int leaveTypeId,
         int employeeId)
     {
         var monthlyAmount = decimal.Round(
-            applicablePolicy.AnnualEntitlementDays / 12m,
+            annualEntitlementDays / 12m,
             6,
             MidpointRounding.AwayFromZero);
 
         // Reconcile the twelfth credit only if the same
-        // entitlement applied throughout this service year.
+        // policy applied throughout this service year.
         if (completedMonths % 12 != 0)
             return monthlyAmount;
-
-        var serviceYearStart = employmentDate.AddMonths(
-            completedMonths - 12);
 
         var samePolicyThroughoutYear = true;
 
@@ -377,25 +569,16 @@ public class MonthlyLeaveAccrualService : BackgroundService
         if (!samePolicyThroughoutYear)
             return monthlyAmount;
 
-        var previousElevenMonths = 0m;
-
-        for (var month = completedMonths - 11;
-             month < completedMonths;
-             month++)
-        {
-            previousElevenMonths += monthlyAmount;
-        }
+        var previousElevenMonths = monthlyAmount * 11m;
 
         var reconciledAmount =
-            applicablePolicy.AnnualEntitlementDays -
-            previousElevenMonths;
+            annualEntitlementDays - previousElevenMonths;
 
         return Math.Max(0m, decimal.Round(
             reconciledAmount,
             6,
             MidpointRounding.AwayFromZero));
     }
-
     private static int GetCompletedServiceMonths(
         DateOnly employmentDate,
         DateOnly today)

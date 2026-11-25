@@ -1,4 +1,126 @@
-﻿
+
+@if (isEmployeeOnly) {
+  <div class="dashboard-layout">
+
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">C</div>
+        <div>
+          <h2>CLAMS</h2>
+          <span>CHAMIRA SYSTEMS</span>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+      <div class="menu-heading">EMPLOYEE MENU</div>
+
+      <nav class="sidebar-menu">
+        <a routerLink="/dashboard"
+           routerLinkActive="active"
+           [routerLinkActiveOptions]="{ exact: true }">
+          <span class="menu-icon">&#9638;</span>
+          Dashboard
+        </a>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <div class="sidebar-divider"></div>
+        <button class="logout-button" (click)="logout()">
+          <span class="menu-icon">&#10140;</span>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div>
+          <h1>Employee Dashboard</h1>
+          <p>Your personal employee self-service portal</p>
+        </div>
+
+        <div class="profile-section">
+          <div class="profile-avatar">
+            {{ userName.charAt(0).toUpperCase() }}
+          </div>
+          <div class="profile-details">
+            <strong>{{ userName }}</strong>
+            <span>Employee</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="dashboard-content">
+
+        <div class="welcome-banner">
+          <div>
+            <h2>Welcome, {{ userName }}!</h2>
+            <p>Welcome to your CLAMS Employee Self-Service Portal.</p>
+          </div>
+          <div class="welcome-symbol">&#128100;</div>
+        </div>
+
+        <div class="section-heading">
+          <div>
+            <h2>My Account</h2>
+            <p>Your employee account information</p>
+          </div>
+        </div>
+
+        <div class="employee-account-card">
+          <div class="employee-account-icon">&#128100;</div>
+          <div class="employee-account-details">
+            <strong>{{ userName }}</strong>
+            <span>Employee Number: {{ currentUser?.employeeNumber ?? 'Not available' }}</span>
+            <span>Account Role: Employee</span>
+          </div>
+        </div>
+
+        <div class="section-heading employee-services-heading">
+          <div>
+            <h2>Employee Self-Service</h2>
+            <p>Access your personal employment services</p>
+          </div>
+        </div>
+
+        <div class="quick-access-grid employee-services-grid">
+
+          <a class="quick-card employee-service-card" routerLink="/leave-requests">
+            <span class="quick-icon">&#128221;</span>
+            <strong>Leave Applications</strong>
+            <span>Apply for and track leave</span>
+          </a>
+
+          <div class="quick-card employee-service-card">
+            <span class="quick-icon">&#128203;</span>
+            <strong>Leave Balance</strong>
+            <span>Coming soon</span>
+          </div>
+
+          <div class="quick-card employee-service-card">
+            <span class="quick-icon">&#128337;</span>
+            <strong>Attendance</strong>
+            <span>Coming soon</span>
+          </div>
+
+          <div class="quick-card employee-service-card">
+            <span class="quick-icon">&#128196;</span>
+            <strong>My Documents</strong>
+            <span>Coming soon</span>
+          </div>
+
+        </div>
+
+        <footer class="dashboard-footer">
+          CLAMS | Chamira Leveraged Advanced Management System
+        </footer>
+
+      </section>
+    </main>
+  </div>
+}
+
+@if (!isEmployeeOnly) {
 <div class="dashboard-layout">
 
   <!-- Sidebar -->
@@ -304,4 +426,5 @@
   </main>
 
 </div>
+}
 

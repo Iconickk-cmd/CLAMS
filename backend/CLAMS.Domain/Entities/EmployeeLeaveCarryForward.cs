@@ -1,4 +1,5 @@
-﻿
+using CLAMS.Domain.Enums;
+
 namespace CLAMS.Domain.Entities;
 
 public class EmployeeLeaveCarryForward
@@ -10,6 +11,8 @@ public class EmployeeLeaveCarryForward
 
     public int LeaveTypeId { get; set; }
     public LeaveType LeaveType { get; set; } = null!;
+
+    public PayCategory PayCategory { get; set; } = PayCategory.FullPay;
 
     public int SourceLeaveYear { get; set; }
     public int TargetLeaveYear { get; set; }

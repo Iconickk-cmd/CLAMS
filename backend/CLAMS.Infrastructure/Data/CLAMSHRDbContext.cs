@@ -1,4 +1,4 @@
-using CLAMS.Domain.Entities;
+﻿using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -245,12 +245,21 @@ public class CLAMSHRDbContext
             entity.Property(p => p.AnnualEntitlementDays)
                 .HasPrecision(10, 6);
 
+            entity.Property(p => p.HalfPayEntitlementDays)
+                .HasPrecision(10, 6);
+
             entity.Property(p => p.MaxCarryForwardDays)
                 .HasPrecision(10, 6);
 
             entity.Property(p => p.EmploymentType)
                 .HasConversion<string>()
                 .HasMaxLength(30);
+
+            entity.Property(p => p.AllocationRule)
+                .HasConversion<string>()
+                .HasMaxLength(40)
+                .HasDefaultValue(LeaveEntitlementAllocationRule.FullPayOnly)
+                .HasSentinel((LeaveEntitlementAllocationRule)0);
 
             entity.HasIndex(p => new
             {
@@ -270,7 +279,8 @@ public class CLAMSHRDbContext
             {
                 table.HasCheckConstraint(
                     "CK_LeaveEntitlementPolicies_Entitlement",
-                    "\"AnnualEntitlementDays\" >= 0");
+                    "\"AnnualEntitlementDays\" >= 0 AND " +
+                    "\"HalfPayEntitlementDays\" >= 0");
 
                 table.HasCheckConstraint(
                     "CK_LeaveEntitlementPolicies_CarryForward",
@@ -303,6 +313,15 @@ public class CLAMSHRDbContext
         {
             entity.HasKey(b => b.Id);
 
+            entity.Property<uint>("xmin")
+                .IsRowVersion();
+
+            entity.Property(b => b.PayCategory)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(PayCategory.FullPay)
+                .HasSentinel((PayCategory)0);
+
             entity.Property(b => b.AnnualEntitlementDays)
                 .HasPrecision(10, 6);
 
@@ -319,7 +338,8 @@ public class CLAMSHRDbContext
             {
                 b.EmployeeId,
                 b.LeaveTypeId,
-                b.LeaveYear
+                b.LeaveYear,
+                b.PayCategory
             }).IsUnique();
 
             entity.ToTable(table =>
@@ -495,6 +515,15 @@ public class CLAMSHRDbContext
         {
             entity.HasKey(c => c.Id);
 
+            entity.Property<uint>("xmin")
+                .IsRowVersion();
+
+            entity.Property(c => c.PayCategory)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(PayCategory.FullPay)
+                .HasSentinel((PayCategory)0);
+
             entity.Property(c => c.OriginalDays)
                 .HasPrecision(10, 6);
 
@@ -505,7 +534,8 @@ public class CLAMSHRDbContext
             {
                 c.EmployeeId,
                 c.LeaveTypeId,
-                c.SourceLeaveYear
+                c.SourceLeaveYear,
+                c.PayCategory
             }).IsUnique();
 
             entity.HasIndex(c => new
@@ -638,3 +668,7 @@ public class CLAMSHRDbContext
         });
     }
 }
+
+
+
+

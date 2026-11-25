@@ -1,0 +1,135 @@
+﻿<div class="login-page">
+
+  <div class="login-card">
+
+    <div class="top-accent"></div>
+
+    <div class="login-content">
+
+      <div class="brand-logo">
+        <div class="logo-circle">
+          <span>C</span>
+        </div>
+      </div>
+
+      <h1>CLAMS HR</h1>
+
+      <p class="subtitle">
+        Secure Human Resource Management Portal
+      </p>
+
+      <div class="welcome-text">
+        Activate Your Account
+      </div>
+
+      <p class="instruction">
+        Set your personal password to access the employee portal
+      </p>
+
+      @if (!isActivated) {
+
+        <form (ngSubmit)="onActivate()" #activationForm="ngForm">
+
+          <div class="form-group">
+            <label for="username">Portal Username</label>
+            <div class="input-wrapper">
+              <input
+                id="username"
+                name="username"
+                type="text"
+                [value]="portalUsername"
+                readonly
+                autocomplete="username" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="temporaryPassword">Temporary Password</label>
+            <div class="input-wrapper">
+              <input
+                id="temporaryPassword"
+                name="temporaryPassword"
+                type="password"
+                [(ngModel)]="temporaryPassword"
+                placeholder="Enter temporary password"
+                autocomplete="current-password"
+                required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="newPassword">New Password</label>
+            <div class="input-wrapper">
+              <input
+                id="newPassword"
+                name="newPassword"
+                type="password"
+                [(ngModel)]="newPassword"
+                placeholder="Create a new password"
+                autocomplete="new-password"
+                minlength="8"
+                required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirmPassword">Confirm New Password</label>
+            <div class="input-wrapper">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                [(ngModel)]="confirmPassword"
+                placeholder="Re-enter your new password"
+                autocomplete="new-password"
+                required />
+            </div>
+          </div>
+
+          <div class="button-row">
+            <button
+              type="submit"
+              class="login-button"
+              [disabled]="activationForm.invalid || isLoading || !portalUsername || !activationToken">
+              @if (isLoading) {
+                Activating...
+              } @else {
+                Activate Account
+              }
+            </button>
+          </div>
+
+        </form>
+
+      } @else {
+
+        <div class="success-section">
+          <p class="success-message">
+            {{ message }}
+          </p>
+
+          <button
+            type="button"
+            class="login-button login-redirect"
+            (click)="goToLogin()">
+            Continue to Login
+          </button>
+        </div>
+
+      }
+
+      @if (message && !isActivated) {
+        <p class="message" role="alert">
+          {{ message }}
+        </p>
+      }
+
+    </div>
+
+    <div class="card-footer">
+      CLAMS HR | Human Resource Management System
+    </div>
+
+  </div>
+
+</div>

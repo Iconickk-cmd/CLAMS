@@ -45,6 +45,7 @@ interface LeavePolicy {
   employeeNumber?: string | null;
   employeeName?: string | null;
   annualEntitlementDays: number;
+  halfPayEntitlementDays: number;
   accruesMonthly: boolean;
   allowCarryForward: boolean;
   maxCarryForwardDays: number;
@@ -67,6 +68,7 @@ interface PolicyForm {
   employmentType: number | null;
   employeeId: number | null;
   annualEntitlementDays: number;
+  halfPayEntitlementDays: number;
   accruesMonthly: boolean;
   allowCarryForward: boolean;
   maxCarryForwardDays: number;
@@ -138,6 +140,7 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
       employmentType: 1,
       employeeId: null,
       annualEntitlementDays: 21,
+      halfPayEntitlementDays: 0,
       accruesMonthly: true,
       allowCarryForward: false,
       maxCarryForwardDays: 10,
@@ -264,6 +267,13 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
     return selected?.code.toUpperCase() === 'AL';
   }
 
+  get isSickLeaveSelected(): boolean {
+    const selected = this.leaveTypes.find(
+      item => item.id === Number(this.form.leaveTypeId)
+    );
+
+    return selected?.code.toUpperCase() === 'SL';
+  }
   get selectedEmployee(): Employee | undefined {
     return this.employees.find(
       item => item.id === Number(this.form.employeeId)
@@ -314,6 +324,7 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
       employmentType: employeeSpecific ? null : employmentTypeValue,
       employeeId: employeeSpecific ? item.employeeId! : null,
       annualEntitlementDays: item.annualEntitlementDays,
+      halfPayEntitlementDays: item.halfPayEntitlementDays ?? 0,
       accruesMonthly: item.accruesMonthly,
       allowCarryForward: item.allowCarryForward,
       maxCarryForwardDays: item.maxCarryForwardDays,
@@ -345,8 +356,14 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
   }
 
   onLeaveTypeChange(): void {
+    this.form.accruesMonthly = this.isAnnualLeaveSelected;
+
     if (!this.isAnnualLeaveSelected) {
       this.form.allowCarryForward = false;
+    }
+
+    if (!this.isSickLeaveSelected) {
+      this.form.halfPayEntitlementDays = 0;
     }
   }
 
@@ -378,6 +395,30 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
     ) {
       this.errorMessage =
         'Annual entitlement must be between 0 and 366 days.';
+      return;
+    }
+
+    if (
+      this.form.halfPayEntitlementDays < 0 ||
+      this.form.halfPayEntitlementDays > 366
+    ) {
+      this.errorMessage =
+        'Half-pay entitlement must be between 0 and 366 days.';
+      return;
+    }
+
+    if (
+      this.form.halfPayEntitlementDays > 0 &&
+      !this.isSickLeaveSelected
+    ) {
+      this.errorMessage =
+        'Half-pay entitlement is only permitted for Sick Leave.';
+      return;
+    }
+
+    if (this.form.accruesMonthly !== this.isAnnualLeaveSelected) {
+      this.errorMessage =
+        'Monthly accrual must be enabled for Annual Leave only.';
       return;
     }
 
@@ -423,6 +464,7 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
           ? Number(this.form.employeeId)
           : null,
       annualEntitlementDays: Number(this.form.annualEntitlementDays),
+      halfPayEntitlementDays: Number(this.form.halfPayEntitlementDays),
       accruesMonthly: this.form.accruesMonthly,
       allowCarryForward: this.form.allowCarryForward,
       maxCarryForwardDays: Number(this.form.maxCarryForwardDays),
@@ -515,3 +557,5 @@ export class LeaveEntitlementPolicyComponent implements OnInit {
     });
   }
 }
+
+

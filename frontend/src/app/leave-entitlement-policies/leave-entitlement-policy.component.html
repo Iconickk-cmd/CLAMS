@@ -4,7 +4,7 @@
     <div>
       <span class="eyebrow">HUMAN RESOURCE MANAGEMENT</span>
       <h1>Leave Entitlement Policies</h1>
-      <p>Configure annual leave entitlements, monthly accrual and carry-forward rules.</p>
+      <p>Configure paid leave entitlements, accrual and carry-forward rules.</p>
     </div>
 
     <button class="primary-button" (click)="openAddForm()">
@@ -137,7 +137,8 @@
           <tr>
             <th>LEAVE TYPE</th>
             <th>POLICY TARGET</th>
-            <th>ANNUAL DAYS</th>
+            <th>FULL-PAY DAYS</th>
+            <th>HALF-PAY DAYS</th>
             <th>MONTHLY ACCRUAL</th>
             <th>CARRY-FORWARD</th>
             <th>EFFECTIVE PERIOD</th>
@@ -170,7 +171,15 @@
 
             <td>
               <strong>{{ item.annualEntitlementDays | number:'1.0-3' }}</strong>
-              <small>days per year</small>
+              <small>full-pay days per year</small>
+            </td>
+
+            <td>
+              <strong *ngIf="item.leaveTypeCode === 'SL'">
+                {{ item.halfPayEntitlementDays | number:'1.0-3' }}
+              </strong>
+              <span *ngIf="item.leaveTypeCode !== 'SL'">—</span>
+              <small *ngIf="item.leaveTypeCode === 'SL'">half-pay days per year</small>
             </td>
 
             <td>
@@ -244,7 +253,7 @@
           </tr>
 
           <tr *ngIf="filteredPolicies.length === 0">
-            <td colspan="8" class="empty-state">
+            <td colspan="9" class="empty-state">
               No entitlement policies found.
               Use Add Entitlement Policy to configure one.
             </td>
@@ -341,10 +350,10 @@
         </div>
 
         <div class="form-section">
-          <h3>2. Annual Entitlement and Accrual</h3>
+          <h3>2. Full-Pay, Half-Pay and Accrual</h3>
 
           <div class="field">
-            <label>Annual Entitlement (Days) <span>*</span></label>
+            <label>Full-Pay Annual Entitlement (Days) <span>*</span></label>
             <input type="number"
                    name="annualEntitlementDays"
                    [(ngModel)]="form.annualEntitlementDays"
@@ -352,10 +361,23 @@
                    max="366"
                    step="0.001"
                    required>
-            <small>
+            <small *ngIf="isAnnualLeaveSelected">
               Monthly accrual:
               {{ form.annualEntitlementDays / 12 | number:'1.0-3' }}
-              days, when monthly accrual is enabled.
+              days.
+            </small>
+          </div>
+
+          <div class="field" *ngIf="isSickLeaveSelected">
+            <label>Half-Pay Annual Entitlement (Days)</label>
+            <input type="number"
+                   name="halfPayEntitlementDays"
+                   [(ngModel)]="form.halfPayEntitlementDays"
+                   min="0"
+                   max="366"
+                   step="0.001">
+            <small>
+              Configure the separate annual Sick Leave allowance payable at half pay.
             </small>
           </div>
 
@@ -363,19 +385,23 @@
             <label class="checkbox-option">
               <input type="checkbox"
                      name="accruesMonthly"
-                     [(ngModel)]="form.accruesMonthly">
+                     [(ngModel)]="form.accruesMonthly"
+                     [disabled]="!isAnnualLeaveSelected">
 
               <span>
                 <strong>Accrues Monthly</strong>
-                <small>
+                <small *ngIf="isAnnualLeaveSelected">
                   Employees earn one-twelfth of their annual entitlement
                   after each completed month of service.
+                </small>
+                <small *ngIf="!isAnnualLeaveSelected">
+                  Monthly accrual applies to Annual Leave only.
                 </small>
               </span>
             </label>
           </div>
-        </div>
 
+        </div>
         <div class="form-section">
           <h3>3. Carry-Forward Configuration</h3>
 

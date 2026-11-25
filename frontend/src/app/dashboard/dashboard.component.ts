@@ -64,7 +64,26 @@ export class DashboardComponent implements OnInit {
     employeesCurrentlyOnLeave: 0
   };
 
+  get isEmployeeOnly(): boolean {
+    const roles = this.currentUser?.roles ?? [];
+
+    const administrativeRoles = [
+      'SystemAdministrator',
+      'HRManager',
+      'HROfficer',
+      'Management',
+      'ReadOnly'
+    ];
+
+    return roles.includes('Employee') &&
+      !roles.some(role => administrativeRoles.includes(role));
+  }
   ngOnInit(): void {
+    if (this.isEmployeeOnly) {
+      this.isLoading = false;
+      return;
+    }
+
     this.loadDashboard();
   }
 

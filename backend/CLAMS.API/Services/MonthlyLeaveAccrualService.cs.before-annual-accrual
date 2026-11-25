@@ -1,0 +1,447 @@
+
+using System.Data;
+using CLAMS.Domain.Entities;
+using CLAMS.Domain.Enums;
+using CLAMS.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace CLAMS.API.Services;
+
+public class MonthlyLeaveAccrualService : BackgroundService
+{
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ILogger<MonthlyLeaveAccrualService> _logger;
+
+    public MonthlyLeaveAccrualService(
+        IServiceScopeFactory scopeFactory,
+        ILogger<MonthlyLeaveAccrualService> logger)
+    {
+        _scopeFactory = scopeFactory;
+        _logger = logger;
+    }
+
+    protected override async Task ExecuteAsync(
+        CancellationToken stoppingToken)
+    {
+        _logger.LogInformation(
+            "Monthly leave accrual service started.");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await ProcessAccrualsAsync(stoppingToken);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "An error occurred while processing monthly leave accruals.");
+            }
+
+            try
+            {
+                await Task.Delay(
+                    TimeSpan.FromHours(1),
+                    stoppingToken);
+            }
+            catch (OperationCanceledException)
+                when (stoppingToken.IsCancellationRequested)
+            {
+                break;
+            }
+        }
+
+        _logger.LogInformation(
+            "Monthly leave accrual service stopped.");
+    }
+
+    private async Task ProcessAccrualsAsync(
+        CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+
+        var context = scope.ServiceProvider
+            .GetRequiredService<CLAMSHRDbContext>();
+
+        var today = GetBusinessDate();
+
+        var employeeIds = await context.Employees
+            .AsNoTracking()
+            .Where(e =>
+                (e.EmploymentStatus == EmploymentStatus.Active ||
+                 e.EmploymentStatus == EmploymentStatus.OnLeave) &&
+                e.DateOfEmployment <= today)
+            .OrderBy(e => e.Id)
+            .Select(e => e.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var employeeId in employeeIds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            await ProcessEmployeeAccrualAsync(
+                employeeId,
+                today,
+                cancellationToken);
+        }
+    }
+
+    private async Task ProcessEmployeeAccrualAsync(
+        int employeeId,
+        DateOnly today,
+        CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+
+        var context = scope.ServiceProvider
+            .GetRequiredService<CLAMSHRDbContext>();
+
+        await using var transaction =
+            await context.Database.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted,
+                cancellationToken);
+
+        try
+        {
+            var lockedRows = await context.Database
+                .SqlQuery<int>($"""
+                    SELECT "Id" AS "Value"
+                    FROM "Employees"
+                    WHERE "Id" = {employeeId}
+                    FOR UPDATE
+                    """)
+                .ToListAsync(cancellationToken);
+
+            if (lockedRows.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return;
+            }
+
+            var employee = await context.Employees
+                .FirstOrDefaultAsync(
+                    e => e.Id == employeeId,
+                    cancellationToken);
+
+            if (employee == null ||
+                (employee.EmploymentStatus != EmploymentStatus.Active &&
+                 employee.EmploymentStatus != EmploymentStatus.OnLeave))
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return;
+            }
+
+            var completedMonths = GetCompletedServiceMonths(
+                employee.DateOfEmployment,
+                today);
+
+            if (completedMonths <= 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return;
+            }
+
+            var policies = await context.LeaveEntitlementPolicies
+                .Include(p => p.LeaveType)
+                .Where(p =>
+                    p.IsActive &&
+                    p.LeaveType.IsActive &&
+                    p.LeaveType.IsPaid &&
+                    p.AccruesMonthly &&
+                    (p.EmployeeId == employee.Id ||
+                     (p.EmployeeId == null &&
+                      p.EmploymentType == employee.EmploymentType)))
+                .ToListAsync(cancellationToken);
+
+            if (policies.Count == 0)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                return;
+            }
+
+            var leaveTypeIds = policies
+                .Select(p => p.LeaveTypeId)
+                .Distinct()
+                .ToList();
+
+            var existingBalances = await context.EmployeeLeaveBalances
+                .Where(b =>
+                    b.EmployeeId == employee.Id &&
+                    leaveTypeIds.Contains(b.LeaveTypeId))
+                .ToListAsync(cancellationToken);
+
+            var balanceCache = existingBalances.ToDictionary(
+                b => (b.LeaveTypeId, b.LeaveYear, b.PayCategory));
+
+            var existingAccruals = await context.LeaveAccrualTransactions
+                .Where(t =>
+                    t.EmployeeLeaveBalance.EmployeeId == employee.Id &&
+                    leaveTypeIds.Contains(
+                        t.EmployeeLeaveBalance.LeaveTypeId))
+                .Select(t => new
+                {
+                    t.EmployeeLeaveBalance.LeaveTypeId,
+                    t.EmployeeLeaveBalance.LeaveYear,
+                    t.EmployeeLeaveBalance.PayCategory,
+                    t.AccrualDate
+                })
+                .ToListAsync(cancellationToken);
+
+            var processedAccruals = existingAccruals
+                .Select(a => (
+                    a.LeaveTypeId,
+                    a.LeaveYear,
+                    a.PayCategory,
+                    a.AccrualDate))
+                .ToHashSet();
+
+            for (var month = 1; month <= completedMonths; month++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                var accrualDate =
+                    employee.DateOfEmployment.AddMonths(month);
+
+                if (accrualDate > today)
+                    continue;
+
+                var leaveYear = accrualDate.Year;
+
+                foreach (var leaveTypeId in leaveTypeIds)
+                {
+                    var applicablePolicy = GetApplicablePolicy(
+                        policies,
+                        leaveTypeId,
+                        employee.Id,
+                        accrualDate);
+
+                    if (applicablePolicy == null)
+                        continue;
+
+                    foreach (var payCategory in Enum.GetValues<PayCategory>())
+                    {
+                        var annualEntitlementDays = payCategory switch
+                        {
+                            PayCategory.FullPay =>
+                                applicablePolicy.AnnualEntitlementDays,
+
+                            PayCategory.HalfPay =>
+                                applicablePolicy.HalfPayEntitlementDays,
+
+                            _ => 0m
+                        };
+
+                        if (annualEntitlementDays <= 0)
+                            continue;
+
+                        var accrualKey = (
+                            leaveTypeId,
+                            leaveYear,
+                            payCategory,
+                            accrualDate);
+
+                        if (processedAccruals.Contains(accrualKey))
+                            continue;
+
+                        var balanceKey = (
+                            leaveTypeId,
+                            leaveYear,
+                            payCategory);
+
+                        if (!balanceCache.TryGetValue(
+                                balanceKey,
+                                out var balance))
+                        {
+                            balance = new EmployeeLeaveBalance
+                            {
+                                EmployeeId = employee.Id,
+                                LeaveTypeId = leaveTypeId,
+                                LeaveYear = leaveYear,
+                                PayCategory = payCategory,
+                                AnnualEntitlementDays = annualEntitlementDays,
+                                AccruedDays = 0m,
+                                TakenDays = 0m,
+                                AdjustmentDays = 0m,
+                                CreatedAt = DateTime.UtcNow
+                            };
+
+                            context.EmployeeLeaveBalances.Add(balance);
+                            balanceCache.Add(balanceKey, balance);
+                        }
+
+                        var daysAccrued = CalculateAccrualDays(
+                            employee.DateOfEmployment,
+                            month,
+                            applicablePolicy,
+                            annualEntitlementDays,
+                            policies,
+                            leaveTypeId,
+                            employee.Id);
+
+                        if (daysAccrued <= 0)
+                            continue;
+
+                        balance.AccruedDays += daysAccrued;
+                        balance.LastAccruedOn = accrualDate;
+                        balance.UpdatedAt = DateTime.UtcNow;
+
+                        context.LeaveAccrualTransactions.Add(
+                            new LeaveAccrualTransaction
+                            {
+                                EmployeeLeaveBalance = balance,
+                                AccrualDate = accrualDate,
+                                CompletedServiceMonths = month,
+                                DaysAccrued = daysAccrued,
+                                CreatedAt = DateTime.UtcNow
+                            });
+
+                        processedAccruals.Add(accrualKey);
+
+                        _logger.LogInformation(
+                            "Accrued {Days} days for employee {EmployeeNumber}, leave type {LeaveTypeId}, pay category {PayCategory}, service month {ServiceMonth}, accrual date {AccrualDate}.",
+                            daysAccrued,
+                            employee.EmployeeNumber,
+                            leaveTypeId,
+                            payCategory,
+                            month,
+                            accrualDate);
+                    }
+                }
+            }
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException)
+            when (cancellationToken.IsCancellationRequested)
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+
+            _logger.LogError(
+                ex,
+                "Failed to process leave accruals for employee {EmployeeId}.",
+                employeeId);
+        }
+    }
+
+    private static LeaveEntitlementPolicy? GetApplicablePolicy(
+        List<LeaveEntitlementPolicy> policies,
+        int leaveTypeId,
+        int employeeId,
+        DateOnly accrualDate)
+    {
+        return policies
+            .Where(p =>
+                p.LeaveTypeId == leaveTypeId &&
+                p.EffectiveFrom <= accrualDate &&
+                (!p.EffectiveTo.HasValue ||
+                 p.EffectiveTo.Value >= accrualDate))
+            .OrderByDescending(p => p.EmployeeId == employeeId)
+            .ThenByDescending(p => p.EffectiveFrom)
+            .ThenByDescending(p => p.Id)
+            .FirstOrDefault();
+    }
+
+    private static decimal CalculateAccrualDays(
+        DateOnly employmentDate,
+        int completedMonths,
+        LeaveEntitlementPolicy applicablePolicy,
+        decimal annualEntitlementDays,
+        List<LeaveEntitlementPolicy> policies,
+        int leaveTypeId,
+        int employeeId)
+    {
+        var monthlyAmount = decimal.Round(
+            annualEntitlementDays / 12m,
+            6,
+            MidpointRounding.AwayFromZero);
+
+        // Reconcile the twelfth credit only if the same
+        // policy applied throughout this service year.
+        if (completedMonths % 12 != 0)
+            return monthlyAmount;
+
+        var samePolicyThroughoutYear = true;
+
+        for (var month = completedMonths - 11;
+             month <= completedMonths;
+             month++)
+        {
+            var date = employmentDate.AddMonths(month);
+
+            var policy = GetApplicablePolicy(
+                policies,
+                leaveTypeId,
+                employeeId,
+                date);
+
+            if (policy == null ||
+                policy.Id != applicablePolicy.Id)
+            {
+                samePolicyThroughoutYear = false;
+                break;
+            }
+        }
+
+        if (!samePolicyThroughoutYear)
+            return monthlyAmount;
+
+        var previousElevenMonths = monthlyAmount * 11m;
+
+        var reconciledAmount =
+            annualEntitlementDays - previousElevenMonths;
+
+        return Math.Max(0m, decimal.Round(
+            reconciledAmount,
+            6,
+            MidpointRounding.AwayFromZero));
+    }
+    private static int GetCompletedServiceMonths(
+        DateOnly employmentDate,
+        DateOnly today)
+    {
+        if (today < employmentDate)
+            return 0;
+
+        var months =
+            ((today.Year - employmentDate.Year) * 12) +
+            today.Month - employmentDate.Month;
+
+        if (employmentDate.AddMonths(months) > today)
+            months--;
+
+        return Math.Max(0, months);
+    }
+
+    private static DateOnly GetBusinessDate()
+    {
+        TimeZoneInfo timeZone;
+
+        try
+        {
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(
+                "Africa/Nairobi");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            timeZone = TimeZoneInfo.FindSystemTimeZoneById(
+                "E. Africa Standard Time");
+        }
+
+        var localTime = TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.UtcNow,
+            timeZone);
+
+        return DateOnly.FromDateTime(localTime);
+    }
+}

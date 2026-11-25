@@ -24,39 +24,30 @@ public class DashboardController : ControllerBase
         var today = DateOnly.FromDateTime(DateTime.Today);
 
         var totalEmployees = await _context.Employees
-            .AsNoTracking()
             .CountAsync();
 
         var activeEmployees = await _context.Employees
-            .AsNoTracking()
             .CountAsync(e => e.EmploymentStatus == EmploymentStatus.Active);
 
         var departments = await _context.Departments
-            .AsNoTracking()
             .CountAsync();
 
         var positions = await _context.Positions
-            .AsNoTracking()
             .CountAsync();
 
         var currentAssignments = await _context.EmployeePositionHistories
-            .AsNoTracking()
             .CountAsync(a => a.Status == PositionAssignmentStatus.Current);
 
         var pendingLeaveRequests = await _context.LeaveRequests
-            .AsNoTracking()
             .CountAsync(l => l.Status == LeaveRequestStatus.Pending);
 
         var approvedLeaveRequests = await _context.LeaveRequests
-            .AsNoTracking()
             .CountAsync(l => l.Status == LeaveRequestStatus.Approved);
 
         var rejectedLeaveRequests = await _context.LeaveRequests
-            .AsNoTracking()
             .CountAsync(l => l.Status == LeaveRequestStatus.Rejected);
 
         var employeesCurrentlyOnLeave = await _context.LeaveRequests
-            .AsNoTracking()
             .Where(l =>
                 l.Status == LeaveRequestStatus.Approved &&
                 l.StartDate <= today &&

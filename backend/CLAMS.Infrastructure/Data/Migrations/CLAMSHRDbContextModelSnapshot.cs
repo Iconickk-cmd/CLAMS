@@ -193,6 +193,13 @@ namespace CLAMS.Infrastructure.Data.Migrations
                     b.Property<int>("LeaveYear")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PayCategory")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("FullPay");
+
                     b.Property<decimal>("TakenDays")
                         .HasPrecision(10, 6)
                         .HasColumnType("numeric(10,6)");
@@ -200,11 +207,17 @@ namespace CLAMS.Infrastructure.Data.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("LeaveTypeId");
 
-                    b.HasIndex("EmployeeId", "LeaveTypeId", "LeaveYear")
+                    b.HasIndex("EmployeeId", "LeaveTypeId", "LeaveYear", "PayCategory")
                         .IsUnique();
 
                     b.ToTable("EmployeeLeaveBalances", t =>
@@ -240,6 +253,13 @@ namespace CLAMS.Infrastructure.Data.Migrations
                         .HasPrecision(10, 6)
                         .HasColumnType("numeric(10,6)");
 
+                    b.Property<string>("PayCategory")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("FullPay");
+
                     b.Property<decimal>("RemainingDays")
                         .HasPrecision(10, 6)
                         .HasColumnType("numeric(10,6)");
@@ -250,6 +270,12 @@ namespace CLAMS.Infrastructure.Data.Migrations
                     b.Property<int>("TargetLeaveYear")
                         .HasColumnType("integer");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ExpiresOn")
@@ -259,7 +285,7 @@ namespace CLAMS.Infrastructure.Data.Migrations
 
                     b.HasIndex("EmployeeId", "LeaveTypeId", "ExpiresOn");
 
-                    b.HasIndex("EmployeeId", "LeaveTypeId", "SourceLeaveYear")
+                    b.HasIndex("EmployeeId", "LeaveTypeId", "SourceLeaveYear", "PayCategory")
                         .IsUnique();
 
                     b.ToTable("EmployeeLeaveCarryForwards", t =>
@@ -494,6 +520,13 @@ namespace CLAMS.Infrastructure.Data.Migrations
                     b.Property<bool>("AccruesMonthly")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("AllocationRule")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasDefaultValue("FullPayOnly");
+
                     b.Property<bool>("AllowCarryForward")
                         .HasColumnType("boolean");
 
@@ -520,6 +553,10 @@ namespace CLAMS.Infrastructure.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<decimal>("HalfPayEntitlementDays")
+                        .HasPrecision(10, 6)
+                        .HasColumnType("numeric(10,6)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -545,7 +582,7 @@ namespace CLAMS.Infrastructure.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_LeaveEntitlementPolicies_CarryForward", "\"MaxCarryForwardDays\" >= 0 AND \"CarryForwardExpiryMonths\" > 0");
 
-                            t.HasCheckConstraint("CK_LeaveEntitlementPolicies_Entitlement", "\"AnnualEntitlementDays\" >= 0");
+                            t.HasCheckConstraint("CK_LeaveEntitlementPolicies_Entitlement", "\"AnnualEntitlementDays\" >= 0 AND \"HalfPayEntitlementDays\" >= 0");
 
                             t.HasCheckConstraint("CK_LeaveEntitlementPolicies_Target", "(\"EmployeeId\" IS NOT NULL AND \"EmploymentType\" IS NULL) OR (\"EmployeeId\" IS NULL AND \"EmploymentType\" IS NOT NULL)");
 

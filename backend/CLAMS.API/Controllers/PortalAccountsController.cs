@@ -1,4 +1,4 @@
-﻿
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -183,7 +183,7 @@ public class PortalAccountsController : ControllerBase
 
         var activationBaseUrl =
             _configuration["Portal:ActivationBaseUrl"]
-            ?? "http://localhost:4300/activate-account";
+            ?? "http://localhost:4200/activate-account";
 
         var activationUrl = QueryHelpers.AddQueryString(
             activationBaseUrl,
@@ -541,6 +541,122 @@ public class PortalAccountsController : ControllerBase
         return Ok(response);
     }
 
+    // =========================================================
+    // REGENERATE STAFF PORTAL ACTIVATION CREDENTIALS
+    // HR Manager or System Administrator only
+    // Only for accounts that have not yet been activated
+    // =========================================================
+
+    [HttpPost("regenerate-activation")]
+    public async Task<IActionResult> RegenerateActivation(
+        [FromQuery] string portalUsername)
+    {
+        if (string.IsNullOrWhiteSpace(portalUsername))
+        {
+            return BadRequest(new
+            {
+                message = "Portal username is required."
+            });
+        }
+
+        var user = await _userManager.Users
+            .Include(u => u.Employee)
+            .SingleOrDefaultAsync(u =>
+                u.UserName == portalUsername.Trim());
+
+        if (user == null)
+        {
+            return NotFound(new
+            {
+                message = "Portal account was not found."
+            });
+        }
+
+        if (user.IsPortalActivated)
+        {
+            return Conflict(new
+            {
+                message = "This account is already activated. Use the password-reset process instead."
+            });
+        }
+
+        if (!user.IsActive ||
+            user.Employee == null ||
+            user.Employee.EmploymentStatus != EmploymentStatus.Active)
+        {
+            return BadRequest(new
+            {
+                message = "Only active employee accounts can receive activation credentials."
+            });
+        }
+
+        var temporaryPassword =
+            RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+
+        var activationToken = WebEncoders.Base64UrlEncode(
+            RandomNumberGenerator.GetBytes(32));
+
+        var activationTokenHash = Convert.ToHexString(
+            SHA256.HashData(
+                Encoding.UTF8.GetBytes(activationToken)));
+
+        var expiresAt = DateTime.UtcNow.AddHours(48);
+
+        user.PasswordHash = _userManager.PasswordHasher.HashPassword(
+            user,
+            temporaryPassword);
+
+        user.MustChangePassword = true;
+        user.ActivationTokenHash = activationTokenHash;
+        user.ActivationTokenExpiresAt = expiresAt;
+        user.TemporaryPasswordExpiresAt = expiresAt;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        var updateResult = await _userManager.UpdateAsync(user);
+
+        if (!updateResult.Succeeded)
+        {
+            return StatusCode(500, new
+            {
+                message = "Could not regenerate activation credentials.",
+                errors = updateResult.Errors.Select(e => e.Description)
+            });
+        }
+
+        var activationBaseUrl =
+            _configuration["Portal:ActivationBaseUrl"]
+            ?? "http://localhost:4200/activate-account";
+
+        var activationUrl = QueryHelpers.AddQueryString(
+            activationBaseUrl,
+            new Dictionary<string, string?>
+            {
+                ["username"] = user.UserName,
+                ["token"] = activationToken
+            });
+
+        var employeeName = string.Join(
+            " ",
+            new[]
+            {
+                user.Employee.FirstName,
+                user.Employee.MiddleName,
+                user.Employee.LastName
+            }.Where(name => !string.IsNullOrWhiteSpace(name)));
+
+        return Ok(new StaffPortalAccountResponse
+        {
+            UserId = user.Id,
+            EmployeeId = user.Employee.Id,
+            EmployeeNumber = user.Employee.EmployeeNumber,
+            EmployeeName = employeeName,
+            PortalUsername = user.UserName!,
+            TemporaryPassword = temporaryPassword,
+            ActivationUrl = activationUrl,
+            ActivationExpiresAt = expiresAt,
+            Message = "New activation credentials generated successfully. The employee must activate the account within 48 hours."
+        });
+    }
     // =========================================================
     // ASSIGN HR MANAGER ROLE
     // System Administrator only

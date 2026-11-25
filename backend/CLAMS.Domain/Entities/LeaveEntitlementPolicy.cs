@@ -1,4 +1,3 @@
-﻿
 using CLAMS.Domain.Enums;
 
 namespace CLAMS.Domain.Entities;
@@ -16,6 +15,10 @@ public class LeaveEntitlementPolicy
     public Employee? Employee { get; set; }
 
     public decimal AnnualEntitlementDays { get; set; }
+
+    public decimal HalfPayEntitlementDays { get; set; } = 0m;
+
+    public LeaveEntitlementAllocationRule AllocationRule { get; set; } = LeaveEntitlementAllocationRule.FullPayOnly;
 
     public bool AccruesMonthly { get; set; } = true;
 

@@ -102,6 +102,8 @@ public class LeaveEntitlementPoliciesController : ControllerBase
                     : null,
 
                 p.AnnualEntitlementDays,
+                p.HalfPayEntitlementDays,
+                p.AllocationRule,
                 p.AccruesMonthly,
                 p.AllowCarryForward,
                 p.MaxCarryForwardDays,
@@ -153,6 +155,8 @@ public class LeaveEntitlementPoliciesController : ControllerBase
                     : null,
 
                 p.AnnualEntitlementDays,
+                p.HalfPayEntitlementDays,
+                p.AllocationRule,
                 p.AccruesMonthly,
                 p.AllowCarryForward,
                 p.MaxCarryForwardDays,
@@ -204,6 +208,8 @@ public class LeaveEntitlementPoliciesController : ControllerBase
             EmployeeId = request.EmployeeId,
 
             AnnualEntitlementDays = request.AnnualEntitlementDays,
+            HalfPayEntitlementDays = request.HalfPayEntitlementDays,
+            AllocationRule = request.AllocationRule,
             AccruesMonthly = request.AccruesMonthly,
 
             AllowCarryForward = request.AllowCarryForward,
@@ -269,6 +275,8 @@ public class LeaveEntitlementPoliciesController : ControllerBase
         policy.EmployeeId = request.EmployeeId;
 
         policy.AnnualEntitlementDays = request.AnnualEntitlementDays;
+        policy.HalfPayEntitlementDays = request.HalfPayEntitlementDays;
+        policy.AllocationRule = request.AllocationRule;
         policy.AccruesMonthly = request.AccruesMonthly;
 
         policy.AllowCarryForward = request.AllowCarryForward;
@@ -354,6 +362,8 @@ public class LeaveEntitlementPoliciesController : ControllerBase
             EmploymentType = policy.EmploymentType,
             EmployeeId = policy.EmployeeId,
             AnnualEntitlementDays = policy.AnnualEntitlementDays,
+            HalfPayEntitlementDays = policy.HalfPayEntitlementDays,
+            AllocationRule = policy.AllocationRule,
             AccruesMonthly = policy.AccruesMonthly,
             AllowCarryForward = policy.AllowCarryForward,
             MaxCarryForwardDays = policy.MaxCarryForwardDays,
@@ -433,11 +443,39 @@ public class LeaveEntitlementPoliciesController : ControllerBase
                 return "The selected employee does not exist.";
         }
 
+        if (!Enum.IsDefined(typeof(LeaveEntitlementAllocationRule), request.AllocationRule))
+            return "Invalid leave entitlement allocation rule."; 
+
         if (request.AnnualEntitlementDays < 0)
             return "Annual entitlement days cannot be negative.";
 
         if (request.AnnualEntitlementDays > 366)
             return "Annual entitlement cannot exceed 366 days.";
+
+        if (request.HalfPayEntitlementDays < 0)
+            return "Half-pay entitlement days cannot be negative."; 
+
+        if (request.HalfPayEntitlementDays > 366)
+            return "Half-pay entitlement cannot exceed 366 days."; 
+
+        if (request.HalfPayEntitlementDays > 0 &&
+            !string.Equals(
+                leaveType.Code,
+                "SL",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return "Half-pay entitlement is only permitted for Sick Leave."; 
+        }
+
+        bool isAnnualLeave = string.Equals(
+            leaveType.Code,
+            "AL",
+            StringComparison.OrdinalIgnoreCase);
+
+        if (request.AccruesMonthly != isAnnualLeave)
+        {
+            return "Monthly accrual must be enabled for Annual Leave and disabled for all other leave types."; 
+        }
 
         if (request.MaxCarryForwardDays < 0)
             return "Maximum carry-forward days cannot be negative.";
@@ -510,6 +548,8 @@ public class LeaveEntitlementPolicyRequest
     public int? EmployeeId { get; set; }
 
     public decimal AnnualEntitlementDays { get; set; }
+    public decimal HalfPayEntitlementDays { get; set; }
+    public LeaveEntitlementAllocationRule AllocationRule { get; set; } = LeaveEntitlementAllocationRule.FullPayOnly;
 
     public bool AccruesMonthly { get; set; } = true;
 
@@ -523,3 +563,12 @@ public class LeaveEntitlementPolicyRequest
 
     public DateOnly? EffectiveTo { get; set; }
 }
+
+
+
+
+
+
+
+
+

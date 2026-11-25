@@ -1,4 +1,5 @@
-﻿
+using CLAMS.Domain.Enums;
+
 namespace CLAMS.Domain.Entities;
 
 public class EmployeeLeaveBalance
@@ -12,6 +13,8 @@ public class EmployeeLeaveBalance
     public LeaveType LeaveType { get; set; } = null!;
 
     public int LeaveYear { get; set; }
+
+    public PayCategory PayCategory { get; set; } = PayCategory.FullPay;
 
     public decimal AnnualEntitlementDays { get; set; }
     public decimal AccruedDays { get; set; }

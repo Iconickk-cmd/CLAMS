@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 using System.Text;
 using CLAMS.API.Services;
@@ -19,6 +19,8 @@ builder.Services.AddHostedService<MonthlyLeaveAccrualService>();
 
 // Leave management services.
 builder.Services.AddScoped<WorkingDayCalculator>();
+builder.Services.AddScoped<LeaveAllocationService>();
+builder.Services.AddScoped<LeaveCancellationService>();
 
 // PostgreSQL database.
 builder.Services.AddDbContext<CLAMSHRDbContext>(options =>

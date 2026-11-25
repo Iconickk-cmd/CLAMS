@@ -21,6 +21,20 @@ export interface LoginResponse {
   message: string;
 }
 
+export interface ActivateAccountRequest {
+  portalUsername: string;
+  activationToken: string;
+  temporaryPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface ActivateAccountResponse {
+  isSuccessful: boolean;
+  portalUsername: string;
+  employeeName: string;
+  message: string;
+}
 export interface CurrentUser {
   userId: number;
   employeeId: number;
@@ -40,6 +54,14 @@ export class AuthService {
   private readonly apiUrl =
     'http://localhost:5219/api/portal-accounts';
 
+  activateAccount(
+    request: ActivateAccountRequest
+  ): Observable<ActivateAccountResponse> {
+    return this.http.post<ActivateAccountResponse>(
+      `${this.apiUrl}/activate`,
+      request
+    );
+  }
   login(
     request: LoginRequest,
     rememberMe: boolean
