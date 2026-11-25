@@ -426,7 +426,7 @@ namespace CLAMS.Infrastructure.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_LeaveAccrualTransactions_Days", "\"DaysAccrued\" > 0");
 
-                            t.HasCheckConstraint("CK_LeaveAccrualTransactions_Months", "\"CompletedServiceMonths\" > 0");
+                            t.HasCheckConstraint("CK_LeaveAccrualTransactions_Months", "\"CompletedServiceMonths\" >= 0");
                         });
                 });
 

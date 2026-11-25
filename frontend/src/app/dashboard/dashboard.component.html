@@ -1,122 +1,235 @@
 
 @if (isEmployeeOnly) {
-  <div class="dashboard-layout">
+  <div class="emp-shell">
 
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <div class="brand-icon">C</div>
-        <div>
-          <h2>CLAMS</h2>
+    <!-- Sidebar -->
+    <aside class="emp-sidebar">
+      <div class="emp-brand">
+        <div class="emp-brand-mark">C</div>
+        <div class="emp-brand-text">
+          <strong>CLAMS</strong>
           <span>CHAMIRA SYSTEMS</span>
         </div>
       </div>
 
-      <div class="sidebar-divider"></div>
-      <div class="menu-heading">EMPLOYEE MENU</div>
-
-      <nav class="sidebar-menu">
+      <nav class="emp-nav" aria-label="Employee menu">
         <a routerLink="/dashboard"
            routerLinkActive="active"
-           [routerLinkActiveOptions]="{ exact: true }">
-          <span class="menu-icon">&#9638;</span>
-          Dashboard
+           [routerLinkActiveOptions]="{ exact: true }"
+           class="emp-nav-item">
+          <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+          <span>Home</span>
         </a>
+
+        <a routerLink="/leave-requests"
+           routerLinkActive="active"
+           class="emp-nav-item">
+          <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+          <span>Leave</span>
+        </a>
+
+        <span class="emp-nav-item disabled" aria-disabled="true">
+          <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <span>Time &amp; Attendance</span>
+          <em>Soon</em>
+        </span>
+
+        <span class="emp-nav-item disabled" aria-disabled="true">
+          <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></svg>
+          <span>Documents</span>
+          <em>Soon</em>
+        </span>
+
+        <span class="emp-nav-item disabled" aria-disabled="true">
+          <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg>
+          <span>Payroll</span>
+          <em>Soon</em>
+        </span>
+
+        <span class="emp-nav-item disabled" aria-disabled="true">
+          <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg>
+          <span>Performance Appraisal</span>
+          <em>Soon</em>
+        </span>
       </nav>
 
-      <div class="sidebar-bottom">
-        <div class="sidebar-divider"></div>
-        <button class="logout-button" (click)="logout()">
-          <span class="menu-icon">&#10140;</span>
-          Sign Out
-        </button>
-      </div>
+      <button type="button" class="emp-signout" (click)="logout()">
+        <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg>
+        <span>Sign Out</span>
+      </button>
     </aside>
 
-    <main class="main-content">
-      <header class="topbar">
-        <div>
-          <h1>Employee Dashboard</h1>
-          <p>Your personal employee self-service portal</p>
-        </div>
+    <!-- Main area -->
+    <div class="emp-main">
 
-        <div class="profile-section">
-          <div class="profile-avatar">
-            {{ userName.charAt(0).toUpperCase() }}
-          </div>
-          <div class="profile-details">
-            <strong>{{ userName }}</strong>
+      <div class="emp-breadcrumb">
+        <span>Home</span>
+        <i aria-hidden="true"></i>
+        <span class="current">Dashboard</span>
+      </div>
+
+      <nav class="emp-tabs" aria-label="Sections">
+        <span class="emp-tab active">Overview</span>
+        <a routerLink="/leave-requests" class="emp-tab">Leave</a>
+        <span class="emp-tab disabled" title="Coming soon">Profile</span>
+        <span class="emp-tab disabled" title="Coming soon">Next of Kin</span>
+        <span class="emp-tab disabled" title="Coming soon">Documents</span>
+      </nav>
+
+      <div class="emp-content">
+
+        <!-- Profile card -->
+        <section class="emp-profile">
+          <div class="emp-avatar" aria-hidden="true">{{ initials }}</div>
+          <h2 class="emp-name">{{ userName }}</h2>
+
+          <div class="emp-role">
+            <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/></svg>
             <span>Employee</span>
           </div>
-        </div>
-      </header>
 
-      <section class="dashboard-content">
-
-        <div class="welcome-banner">
-          <div>
-            <h2>Welcome, {{ userName }}!</h2>
-            <p>Welcome to your CLAMS Employee Self-Service Portal.</p>
+          <div class="emp-profile-details">
+            <div>
+              <span>Employee No.</span>
+              <strong>{{ currentUser?.employeeNumber ?? 'Not available' }}</strong>
+            </div>
+            <div>
+              <span>Username</span>
+              <strong>{{ currentUser?.portalUsername ?? 'Not available' }}</strong>
+            </div>
           </div>
-          <div class="welcome-symbol">&#128100;</div>
-        </div>
+        </section>
 
-        <div class="section-heading">
-          <div>
-            <h2>My Account</h2>
-            <p>Your employee account information</p>
-          </div>
-        </div>
-
-        <div class="employee-account-card">
-          <div class="employee-account-icon">&#128100;</div>
-          <div class="employee-account-details">
-            <strong>{{ userName }}</strong>
-            <span>Employee Number: {{ currentUser?.employeeNumber ?? 'Not available' }}</span>
-            <span>Account Role: Employee</span>
-          </div>
-        </div>
-
-        <div class="section-heading employee-services-heading">
-          <div>
-            <h2>Employee Self-Service</h2>
-            <p>Access your personal employment services</p>
-          </div>
-        </div>
-
-        <div class="quick-access-grid employee-services-grid">
-
-          <a class="quick-card employee-service-card" routerLink="/leave-requests">
-            <span class="quick-icon">&#128221;</span>
-            <strong>Leave Applications</strong>
-            <span>Apply for and track leave</span>
-          </a>
-
-          <div class="quick-card employee-service-card">
-            <span class="quick-icon">&#128203;</span>
-            <strong>Leave Balance</strong>
-            <span>Coming soon</span>
+        <!-- My Actions -->
+        <section class="emp-actions">
+          <div class="emp-action-tabs" role="tablist">
+            <button type="button" role="tab"
+                    [class.active]="actionTab === 'actions'"
+                    (click)="actionTab = 'actions'">My Actions</button>
+            <button type="button" role="tab"
+                    [class.active]="actionTab === 'statements'"
+                    (click)="actionTab = 'statements'">My Statements</button>
+            <button type="button" role="tab"
+                    [class.active]="actionTab === 'policies'"
+                    (click)="actionTab = 'policies'">HR Policies</button>
           </div>
 
-          <div class="quick-card employee-service-card">
-            <span class="quick-icon">&#128337;</span>
-            <strong>Attendance</strong>
-            <span>Coming soon</span>
+          @if (actionTab === 'actions') {
+            <div class="emp-tiles">
+
+              <a routerLink="/leave-requests" class="emp-tile">
+                <span class="emp-tile-icon blue">
+                  <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+                </span>
+                <strong>Apply Leave</strong>
+              </a>
+
+              <a routerLink="/leave-requests" class="emp-tile">
+                <span class="emp-tile-icon green">
+                  <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+                </span>
+                <strong>Leave Balance</strong>
+              </a>
+
+              <div class="emp-tile disabled" aria-disabled="true">
+                <span class="emp-tile-icon mint">
+                  <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a5 5 0 0 0-5 5v3.5L5.5 15h13L17 11.5V8a5 5 0 0 0-5-5z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
+                </span>
+                <strong>Check-In</strong>
+                <span class="emp-soon">Coming soon</span>
+              </div>
+
+              <div class="emp-tile disabled" aria-disabled="true">
+                <span class="emp-tile-icon orange">
+                  <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a5 5 0 0 0-5 5v3.5L5.5 15h13L17 11.5V8a5 5 0 0 0-5-5z"/><path d="M10 18a2 2 0 0 0 4 0"/></svg>
+                </span>
+                <strong>Check-Out</strong>
+                <span class="emp-soon">Coming soon</span>
+              </div>
+
+              <div class="emp-tile disabled" aria-disabled="true">
+                <span class="emp-tile-icon teal">
+                  <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 17v-5M12 17V7M17 17v-8"/></svg>
+                </span>
+                <strong>Statements</strong>
+                <span class="emp-soon">Coming soon</span>
+              </div>
+
+              <div class="emp-tile disabled" aria-disabled="true">
+                <span class="emp-tile-icon purple">
+                  <svg class="emp-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg>
+                </span>
+                <strong>Grievances</strong>
+                <span class="emp-soon">Coming soon</span>
+              </div>
+
+            </div>
+          } @else if (actionTab === 'statements') {
+            <div class="emp-placeholder">
+              <strong>My Statements</strong>
+              <p>Your payslips and statements will appear here.</p>
+              <span class="emp-soon">Coming soon</span>
+            </div>
+          } @else {
+            <div class="emp-placeholder">
+              <strong>HR Policies</strong>
+              <p>Company policies and handbooks will be published here.</p>
+              <span class="emp-soon">Coming soon</span>
+            </div>
+          }
+        </section>
+
+        <!-- Summary -->
+        <aside class="emp-summary">
+          <div class="emp-summary-head">
+            <h2>Summary</h2>
+            <button type="button"
+                    class="emp-refresh"
+                    aria-label="Refresh summary"
+                    (click)="loadEmployeeSummary()"
+                    [disabled]="summaryLoading">&#8635;</button>
           </div>
 
-          <div class="quick-card employee-service-card">
-            <span class="quick-icon">&#128196;</span>
-            <strong>My Documents</strong>
-            <span>Coming soon</span>
-          </div>
+          @if (summaryLoading) {
+            <div class="emp-summary-note">Loading your summary...</div>
+          } @else if (summaryError) {
+            <div class="emp-summary-note">Unable to load your summary right now.</div>
+          } @else {
+            @for (balance of leaveBalances; track balance.leaveType) {
+              <div class="emp-summary-row">
+                <span>{{ balance.leaveType }}</span>
+                <strong>{{ balance.availableDays | number:'1.0-1' }} days</strong>
+              </div>
+            }
+            @if (leaveBalances.length === 0) {
+              <div class="emp-summary-row">
+                <span>Leave balance</span>
+                <strong>Not yet available</strong>
+              </div>
+            }
+            <div class="emp-summary-row">
+              <span>Pending requests</span>
+              <strong>{{ pendingRequestCount }}</strong>
+            </div>
+            <div class="emp-summary-row">
+              <span>Next leave</span>
+              <strong>
+                @if (upcomingLeave) {
+                  {{ upcomingLeave.startDate | date:'mediumDate' }}
+                } @else {
+                  None scheduled
+                }
+              </strong>
+            </div>
+          }
+        </aside>
 
-        </div>
+      </div>
 
-        <footer class="dashboard-footer">
-          CLAMS | Chamira Leveraged Advanced Management System
-        </footer>
-
-      </section>
-    </main>
+      <footer class="emp-footer">
+        CLAMS | Chamira Leveraged Advanced Management System
+      </footer>
+    </div>
   </div>
 }
 

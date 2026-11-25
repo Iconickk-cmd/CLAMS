@@ -6,14 +6,22 @@ import {
   inject
 } from '@angular/core';
 
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
   AuthService,
   CurrentUser
 } from '../services/auth.service';
+
+import {
+  LeaveRequest,
+  LeaveRequestService,
+  LeaveRequestStatus
+} from '../services/leave-request.service';
 
 interface DashboardStatistics {
   totalEmployees: number;
@@ -32,7 +40,9 @@ interface DashboardStatistics {
   standalone: true,
   imports: [
     RouterLink,
-    RouterLinkActive
+    RouterLinkActive,
+    DatePipe,
+    DecimalPipe
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
@@ -43,6 +53,7 @@ export class DashboardComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly leaveService = inject(LeaveRequestService);
 
   private readonly apiUrl = 'http://localhost:5219/api';
 
@@ -51,6 +62,14 @@ export class DashboardComponent implements OnInit {
 
   isLoading = true;
   hasLoadError = false;
+
+  // Employee self-service view.
+  actionTab: 'actions' | 'statements' | 'policies' = 'actions';
+  summaryLoading = false;
+  summaryError = false;
+  leaveBalances: { leaveType: string; availableDays: number }[] = [];
+  pendingRequestCount = 0;
+  upcomingLeave: LeaveRequest | null = null;
 
   stats: DashboardStatistics = {
     totalEmployees: 0,
@@ -87,6 +106,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     if (this.isEmployeeOnly) {
       this.isLoading = false;
+      this.loadEmployeeSummary();
       return;
     }
 
@@ -131,6 +151,68 @@ export class DashboardComponent implements OnInit {
       }
 
     });
+  }
+
+  loadEmployeeSummary(): void {
+    this.summaryLoading = true;
+    this.summaryError = false;
+
+    forkJoin({
+      balances: this.leaveService.getMyBalances(),
+      requests: this.leaveService.getMyRequests()
+    }).subscribe({
+      next: ({ balances, requests }) => {
+        // One row per leave type, summing pay categories and any
+        // unexpired carry-forward.
+        const totals = new Map<string, number>();
+        for (const line of balances.balances ?? []) {
+          totals.set(
+            line.leaveType,
+            (totals.get(line.leaveType) ?? 0) + line.availableDays
+          );
+        }
+        this.leaveBalances = Array.from(totals, ([leaveType, availableDays]) => ({
+          leaveType,
+          availableDays
+        }));
+
+        const all = requests.requests ?? [];
+        this.pendingRequestCount = all.filter(
+          r => r.status === LeaveRequestStatus.Pending
+        ).length;
+
+        const now = new Date();
+        const today =
+          `${now.getFullYear()}-` +
+          `${String(now.getMonth() + 1).padStart(2, '0')}-` +
+          `${String(now.getDate()).padStart(2, '0')}`;
+
+        this.upcomingLeave =
+          all
+            .filter(
+              r =>
+                r.status === LeaveRequestStatus.Approved &&
+                r.endDate.substring(0, 10) >= today
+            )
+            .sort((a, b) => a.startDate.localeCompare(b.startDate))[0] ??
+          null;
+
+        this.summaryLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        console.error('Employee summary loading error:', error);
+        this.summaryError = true;
+        this.summaryLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  get initials(): string {
+    const parts = this.userName.trim().split(/\s+/).filter(Boolean);
+    const letters = parts.slice(0, 2).map(p => p.charAt(0).toUpperCase());
+    return letters.join('') || 'U';
   }
 
   get userName(): string {

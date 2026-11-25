@@ -1,4 +1,5 @@
-﻿using CLAMS.Domain.Entities;
+﻿
+using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity;
@@ -501,7 +502,7 @@ public class CLAMSHRDbContext
 
                 table.HasCheckConstraint(
                     "CK_LeaveAccrualTransactions_Months",
-                    "\"CompletedServiceMonths\" > 0");
+                    "\"CompletedServiceMonths\" >= 0");
             });
 
             entity.HasOne(t => t.EmployeeLeaveBalance)
@@ -668,7 +669,3 @@ public class CLAMSHRDbContext
         });
     }
 }
-
-
-
-
