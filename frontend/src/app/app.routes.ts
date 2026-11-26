@@ -11,6 +11,7 @@ import { LeaveTypeComponent } from './leave-types/leave-type.component';
 import { LeaveEntitlementPolicyComponent } from './leave-entitlement-policies/leave-entitlement-policy.component';
 import { LeaveRequestComponent } from './leave-requests/leave-request.component';
 import { LeaveApprovalComponent } from './leave-approvals/leave-approval.component';
+import { MyProfileComponent } from './profile/my-profile.component';
 import { AccessDeniedComponent } from './access-denied/access-denied.component';
 
 import { roleGuard } from './guards/role.guard';
@@ -124,6 +125,26 @@ export const routes: Routes = [
     data: {
       title: 'Leave Approvals',
       roles: ['SystemAdministrator', 'HRManager', 'HROfficer']
+    }
+  },
+  {
+    path: 'profile',
+    component: MyProfileComponent,
+    canActivate: [roleGuard],
+    data: {
+      title: 'My Profile',
+      section: 'profile',
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly', 'Employee']
+    }
+  },
+  {
+    path: 'next-of-kin',
+    component: MyProfileComponent,
+    canActivate: [roleGuard],
+    data: {
+      title: 'Next of Kin',
+      section: 'next-of-kin',
+      roles: ['SystemAdministrator', 'HRManager', 'HROfficer', 'Management', 'ReadOnly', 'Employee']
     }
   },
   {

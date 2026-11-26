@@ -1,12 +1,6 @@
 <div class="leave-page">
 
-  <nav class="page-tabs" aria-label="Employee sections">
-    <a routerLink="/dashboard" class="page-tab">Overview</a>
-    <span class="page-tab disabled" title="Coming soon">Profile</span>
-    <span class="page-tab disabled" title="Coming soon">Next of Kin</span>
-    <span class="page-tab active" aria-current="page">Leave</span>
-    <span class="page-tab disabled" title="Coming soon">Documents</span>
-  </nav>
+  <app-employee-tabs active="leave"></app-employee-tabs>
 
   <div class="page-body">
 
@@ -17,10 +11,14 @@
       <div class="alert alert-error">{{ errorMessage }}</div>
     }
 
-    <!-- Balance cards -->
-    <section class="balance-row" aria-label="Leave balances">
+    @if (!showForm) {
+      <!-- Balance cards -->
+      <section class="balance-row" aria-label="Leave balances">
       @if (balancesFailed) {
-        <div class="balance-note">Your leave balances could not be loaded right now.</div>
+        <div class="balance-note">
+          Your leave balances could not be loaded ({{ balanceError }}).
+          <button type="button" class="btn-link" (click)="loadBalances()">Try again</button>
+        </div>
       } @else if (!balancesLoaded) {
         <div class="balance-note">Loading your leave balances...</div>
       } @else {
@@ -28,22 +26,22 @@
           <article class="bal-card">
             <span class="bal-type">{{ group.leaveType }}</span>
             <div class="bal-figure" [class.is-empty]="group.available <= 0">
-              {{ group.available | number:'1.0-1' }} <span>BAL</span>
+              {{ group.availableText }} <span>BAL</span>
             </div>
 
             @if (group.hasCarryForward || group.entitlement > 0) {
               <div class="bal-lines">
                 @if (group.hasCarryForward) {
                   <div>
-                    <strong>{{ group.carryRemaining | number:'1.0-1' }}</strong> of
-                    <strong>{{ group.carryOriginal | number:'1.0-1' }}</strong>
+                    <strong>{{ group.carryRemainingText }}</strong> of
+                    <strong>{{ group.carryOriginalText }}</strong>
                     <i>|</i> CARRIED FORWARD
                   </div>
                 }
                 @if (group.entitlement > 0) {
                   <div>
-                    <strong>{{ group.accrued | number:'1.0-1' }}</strong> of
-                    <strong>{{ group.entitlement | number:'1.0-1' }}</strong>
+                    <strong>{{ group.accruedText }}</strong> of
+                    <strong>{{ group.entitlementText }}</strong>
                     <i>|</i> ACCRUED DAYS
                   </div>
                 }
@@ -54,20 +52,19 @@
               <span [style.width.%]="group.percentTaken"></span>
             </div>
             <div class="bal-foot">
-              <span>{{ group.takenDays | number:'1.0-1' }} OF {{ group.totalDays | number:'1.0-1' }} TAKEN</span>
+              <span>{{ group.takenText }} OF {{ group.totalText }} TAKEN</span>
               <span>{{ group.percentTaken }}%</span>
             </div>
             @if (group.halfPayAvailable > 0) {
-              <div class="bal-note">
-                Includes {{ group.halfPayAvailable | number:'1.0-1' }} half-pay day(s)
-              </div>
+              <div class="bal-note">Includes {{ group.halfPayText }} half-pay day(s)</div>
             }
           </article>
         } @empty {
           <div class="balance-note">No leave balances have been recorded for you yet.</div>
         }
       }
-    </section>
+      </section>
+    }
 
     <div class="apply-bar">
       <button
@@ -93,10 +90,10 @@
       } @else if (hasError) {
         <div class="state-box">
           <h3>Unable to load applications</h3>
-          <p>Please check your connection and try again.</p>
+          <p>{{ errorMessage || 'Please check your connection and try again.' }}</p>
           <button type="button" class="btn-secondary" (click)="loadRequests()">Try Again</button>
         </div>
-      } @else if (requests.length === 0) {
+      } @else if (rows.length === 0) {
         <div class="state-box">
           <h3>No leave applications yet</h3>
           <p>Your submitted leave applications will appear here.</p>
@@ -116,28 +113,22 @@
               </tr>
             </thead>
             <tbody>
-              @for (request of requests; track request.id) {
+              @for (row of rows; track row.id) {
                 <tr>
                   <td>
-                    <button type="button" class="leave-no" (click)="viewDetails(request)">
+                    <button type="button" class="leave-no" (click)="viewDetails(row)">
                       <span class="doc-box"><svg class="doc-svg" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></span>
-                      <span>{{ leaveNumber(request) }}</span>
+                      <span>{{ row.leaveNo }}</span>
                     </button>
                   </td>
-                  <td><span class="day-box">{{ request.requestedDays | number:'1.0-1' }}</span></td>
+                  <td><span class="day-box">{{ row.applied }}</span></td>
                   <td>
-                    @if (request.status === status.Approved) {
-                      <span class="day-box approved">{{ request.approvedDays | number:'1.0-1' }}</span>
-                    } @else {
-                      <span class="day-box muted">&ndash;</span>
-                    }
+                    <span class="day-box" [class.approved]="row.isApproved" [class.muted]="!row.isApproved">{{ row.approved }}</span>
                   </td>
-                  <td class="date-cell"><svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>{{ request.startDate | date:'dd MMM yy' }}</td>
-                  <td class="date-cell"><svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9.5 15l2 2 3.5-3.5"/></svg>{{ returnDate(request) | date:'dd MMM yy' }}</td>
+                  <td class="date-cell"><svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>{{ row.start }}</td>
+                  <td class="date-cell"><svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4M9.5 15l2 2 3.5-3.5"/></svg>{{ row.returnOn }}</td>
                   <td>
-                    <span class="status-pill" [ngClass]="getStatusClass(request.status)">
-                      {{ getStatusLabel(request.status) }}
-                    </span>
+                    <span class="status-pill" [ngClass]="row.statusClass">{{ row.statusLabel }}</span>
                   </td>
                   <td class="col-actions">
                     <div class="kebab">
@@ -146,17 +137,17 @@
                         class="kebab-btn"
                         aria-label="Actions"
                         aria-haspopup="menu"
-                        [attr.aria-expanded]="openMenuId === request.id"
-                        (click)="toggleMenu(request.id, $event)">
+                        [attr.aria-expanded]="openMenuId === row.id"
+                        (click)="toggleMenu(row.id, $event)">
                         &#8942;
                       </button>
-                      @if (openMenuId === request.id) {
+                      @if (openMenuId === row.id) {
                         <div class="kebab-menu" role="menu">
-                          <button type="button" role="menuitem" (click)="viewDetails(request)">
+                          <button type="button" role="menuitem" (click)="viewDetails(row)">
                             View details
                           </button>
-                          @if (canCancel(request)) {
-                            <button type="button" role="menuitem" class="danger" (click)="cancelRequest(request)">
+                          @if (row.canCancel) {
+                            <button type="button" role="menuitem" class="danger" (click)="cancelRow(row)">
                               Cancel application
                             </button>
                           }
@@ -169,82 +160,65 @@
             </tbody>
           </table>
         </div>
+        @if (skippedRows > 0) {
+          <div class="skipped-note">
+            {{ skippedRows }} application(s) could not be displayed. Please contact support if this continues.
+          </div>
+        }
       }
     </section>
   </div>
 
   <!-- Details dialog -->
-  @if (detailsRequest; as request) {
+  @if (details; as d) {
     <div class="modal-backdrop" (click)="closeDetails()">
-      <div class="leave-modal" role="dialog" aria-modal="true" aria-labelledby="details-title"
+      <div class="leave-modal wide" role="dialog" aria-modal="true" aria-labelledby="details-title"
            (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div>
-            <span class="page-eyebrow">LEAVE APPLICATION</span>
-            <h2 id="details-title">{{ leaveNumber(request) }}</h2>
-            <span class="status-pill" [ngClass]="getStatusClass(request.status)">
-              {{ getStatusLabel(request.status) }}
-            </span>
-          </div>
-          <button type="button" class="modal-close" aria-label="Close" (click)="closeDetails()">&times;</button>
+        <h2 id="details-title" class="sr-only">Leave application {{ d.leaveNo }}</h2>
+
+        <div class="kv-row two">
+          <div class="kv"><span class="k">Leave No:</span><span class="v">{{ d.leaveNo }}</span></div>
+          <div class="kv"><span class="k">Leave Type:</span><span class="v">{{ d.leaveType }}</span></div>
         </div>
 
-        <dl class="detail-grid">
-          <div>
-            <dt>Leave type</dt>
-            <dd>{{ request.leaveType }}</dd>
-          </div>
-          <div>
-            <dt>Submitted</dt>
-            <dd>{{ request.submittedAt | date:'medium' }}</dd>
-          </div>
-          <div>
-            <dt>Start date</dt>
-            <dd>{{ request.startDate | date:'fullDate' }}</dd>
-          </div>
-          <div>
-            <dt>Return date</dt>
-            <dd>{{ returnDate(request) | date:'fullDate' }}</dd>
-          </div>
-          <div>
-            <dt>Days applied</dt>
-            <dd>{{ request.requestedDays | number:'1.0-1' }}</dd>
-          </div>
-          <div>
-            <dt>Days approved</dt>
-            <dd>
-              @if (request.status === status.Approved) {
-                {{ request.approvedDays | number:'1.0-1' }}
-              } @else {
-                &ndash;
-              }
-            </dd>
-          </div>
-          <div class="wide">
-            <dt>Reason</dt>
-            <dd class="reason-text">{{ request.reason }}</dd>
-          </div>
-        </dl>
+        <div class="kv-row">
+          <div class="kv"><span class="k">Reason:</span><span class="v reason">{{ d.reason }}</span></div>
+        </div>
 
-        @if (request.decisionBy) {
-          <div class="decision-box">
-            <strong>{{ getStatusLabel(request.status) }} by {{ request.decisionBy }}</strong>
-            @if (request.decisionAt) {
-              <span>{{ request.decisionAt | date:'medium' }}</span>
-            }
-            @if (request.decisionRemarks) {
-              <p>{{ request.decisionRemarks }}</p>
-            }
+        <div class="kv-row two">
+          <div class="kv"><span class="k">Start Date:</span><span class="v">{{ d.start }}</span></div>
+          <div class="kv"><span class="k">Return Date:</span><span class="v">{{ d.returnOn }}</span></div>
+        </div>
+
+        <div class="kv-row two">
+          <div class="kv"><span class="k">Days Applied:</span><span class="v">{{ d.applied }}</span></div>
+          <div class="kv"><span class="k">Days Approved:</span><span class="v">{{ d.approved }}</span></div>
+        </div>
+
+        <div class="kv-row">
+          <div class="kv">
+            <span class="k">Status:</span>
+            <span class="v status-text" [ngClass]="d.statusClass">{{ d.statusLabel }}</span>
+          </div>
+        </div>
+
+        @if (d.decision !== '-') {
+          <div class="kv-row">
+            <div class="kv"><span class="k">Decision:</span><span class="v">{{ d.decision }}</span></div>
           </div>
         }
 
-        <div class="modal-actions">
-          @if (canCancel(request)) {
-            <button type="button" class="btn-danger" (click)="cancelRequest(request)">
-              Cancel application
-            </button>
+        <div class="kv-row">
+          <div class="kv"><span class="k">Comment:</span><span class="v reason">{{ d.comment }}</span></div>
+        </div>
+
+        <div class="modal-actions split">
+          @if (d.canCancel) {
+            <button type="button" class="btn-danger" (click)="cancelRow(d)">Cancel application</button>
           }
+          <span class="spacer"></span>
           <button type="button" class="btn-secondary" (click)="closeDetails()">Close</button>
+          <button type="button" class="btn-print" (click)="printDetails()">PRINT</button>
         </div>
       </div>
     </div>
@@ -275,46 +249,64 @@
           <div class="state-box"><p>No active leave types are currently available. Please contact HR.</p></div>
         } @else {
           <form #leaveForm="ngForm" (ngSubmit)="submitRequest()">
-            <div class="form-group">
-              <label for="leaveTypeId">Leave Type <span class="required">*</span></label>
-              <select id="leaveTypeId" name="leaveTypeId" [(ngModel)]="form.leaveTypeId" required>
-                <option [ngValue]="null" disabled>Select leave type</option>
-                @for (item of leaveTypes; track item.id) {
-                  <option [ngValue]="item.id">{{ item.name }} ({{ item.code }})</option>
-                }
-              </select>
+            <div class="supervisor-info">
+              <span class="supervisor-label">Reporting Supervisor</span>
+              @if (isLoadingProfile) {
+                <strong>Loading...</strong>
+              } @else if (profileLoadError) {
+                <strong>{{ profileLoadError }}</strong>
+                <button type="button" class="btn-link" (click)="loadMyProfile()">Try again</button>
+              } @else if (myProfile?.supervisorName) {
+                <strong>{{ myProfile.supervisorName }}</strong>
+              } @else {
+                <strong>Not assigned — please contact HR.</strong>
+              }
             </div>
-
-            @if (selectedTypeAvailable !== null) {
-              <div class="balance-hint" [class.low]="selectedTypeAvailable <= 0">
-                Available this year: <strong>{{ selectedTypeAvailable | number:'1.0-2' }}</strong> day(s).
-                @if (selectedTypeAvailable <= 0) {
-                  <span>You can still apply, but HR may be unable to approve it.</span>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="leaveTypeId">Leave Type <span class="required">*</span></label>
+                <select id="leaveTypeId" name="leaveTypeId" [(ngModel)]="form.leaveTypeId" required>
+                  <option [ngValue]="null" disabled>Select leave type</option>
+                  @for (item of leaveTypes; track item.id) {
+                    <option [ngValue]="item.id">{{ item.name }} ({{ item.code }})</option>
+                  }
+                </select>
+                @if (selectedTypeAvailableText !== null) {
+                  <div class="balance-hint" [class.low]="selectedTypeIsEmpty">
+                    Available this year: <strong>{{ selectedTypeAvailableText }}</strong> day(s).
+                    @if (selectedTypeIsEmpty) {
+                      <span>You can still apply, but HR may be unable to approve it.</span>
+                    }
+                  </div>
+                }
+                @if (selectedTypeHasNoBalanceRecord) {
+                  <div class="balance-hint">No balance has been recorded for this leave type yet.</div>
                 }
               </div>
-            }
-            @if (selectedTypeHasNoBalanceRecord) {
-              <div class="balance-hint">No balance has been recorded for this leave type yet.</div>
-            }
 
-            <div class="form-row">
               <div class="form-group">
                 <label for="startDate">Start Date <span class="required">*</span></label>
                 <input id="startDate" type="date" name="startDate" [(ngModel)]="form.startDate" required>
               </div>
+
               <div class="form-group">
-                <label for="endDate">End Date <span class="required">*</span></label>
-                <input id="endDate" type="date" name="endDate" [(ngModel)]="form.endDate"
-                       [min]="form.startDate || null" required>
+                <label for="daysApplied">Days Applied <span class="required">*</span></label>
+                <input id="daysApplied" type="number" name="daysApplied"
+                       [(ngModel)]="form.daysApplied"
+                       min="1" step="1" required>
+                <span class="field-hint">Enter the number of working days requested.</span>
               </div>
             </div>
 
+
+
+
             <div class="form-group">
-              <label for="reason">Reason for Leave <span class="required">*</span></label>
+              <label for="reason">Reason for Leave (Optional)</label>
               <textarea id="reason" name="reason" rows="5" maxlength="2000" minlength="3"
                         [(ngModel)]="form.reason"
                         placeholder="Please explain the reason for your leave application..."
-                        required></textarea>
+                        ></textarea>
               <span class="field-hint">Maximum 2,000 characters.</span>
             </div>
 

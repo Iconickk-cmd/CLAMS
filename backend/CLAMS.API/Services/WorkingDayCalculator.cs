@@ -1,5 +1,4 @@
-﻿
-using CLAMS.Infrastructure.Data;
+﻿using CLAMS.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace CLAMS.API.Services;
@@ -60,6 +59,53 @@ public class WorkingDayCalculator
         }
 
         return workingDates;
+    }
+
+    /// <summary>
+    /// Finds the calendar end date required to complete the requested
+    /// number of working days, excluding weekends and active holidays.
+    /// </summary>
+    public async Task<DateOnly> GetEndDateForWorkingDaysAsync(
+        DateOnly startDate,
+        int daysApplied,
+        CancellationToken cancellationToken = default)
+    {
+        if (daysApplied <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(daysApplied),
+                "Days applied must be greater than zero.");
+        }
+
+        var remainingCalendarDays =
+            DateOnly.MaxValue.DayNumber - startDate.DayNumber;
+
+        var windowDays = Math.Min(30, remainingCalendarDays);
+
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var endDate = startDate.AddDays(windowDays);
+
+            var workingDates = await GetWorkingDatesAsync(
+                startDate,
+                endDate,
+                cancellationToken);
+
+            if (workingDates.Count >= daysApplied)
+                return workingDates[daysApplied - 1];
+
+            if (windowDays >= remainingCalendarDays)
+            {
+                throw new InvalidOperationException(
+                    "The requested working days extend beyond the supported date range.");
+            }
+
+            windowDays = windowDays > remainingCalendarDays / 2
+                ? remainingCalendarDays
+                : windowDays * 2;
+        }
     }
 
     /// <summary>

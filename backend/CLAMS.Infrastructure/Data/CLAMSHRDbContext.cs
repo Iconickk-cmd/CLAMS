@@ -1,4 +1,4 @@
-﻿
+
 using CLAMS.Domain.Entities;
 using CLAMS.Domain.Enums;
 using CLAMS.Infrastructure.Identity;
@@ -22,6 +22,9 @@ public class CLAMSHRDbContext
 
     // EMPLOYEES
     public DbSet<Employee> Employees => Set<Employee>();
+
+    // NEXT OF KIN
+    public DbSet<NextOfKin> NextOfKinContacts => Set<NextOfKin>();
 
     // POSITIONS
     public DbSet<Position> Positions => Set<Position>();
@@ -141,6 +144,11 @@ public class CLAMSHRDbContext
                 .HasConversion<string>()
                 .HasMaxLength(30);
 
+            entity.HasOne(e => e.Supervisor)
+                .WithMany(e => e.DirectReports)
+                .HasForeignKey(e => e.SupervisorEmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(e => e.Department)
                 .WithMany(d => d.Employees)
                 .HasForeignKey(e => e.DepartmentId)
@@ -218,6 +226,39 @@ public class CLAMSHRDbContext
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        // NEXT OF KIN
+        modelBuilder.Entity<NextOfKin>(entity =>
+        {
+            entity.HasKey(n => n.Id);
+
+            entity.Property(n => n.FullName)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            entity.Property(n => n.Relationship)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(n => n.PhoneNumber)
+                .IsRequired()
+                .HasMaxLength(30);
+
+            entity.Property(n => n.AlternativePhoneNumber)
+                .HasMaxLength(30);
+
+            entity.Property(n => n.Email)
+                .HasMaxLength(150);
+
+            entity.Property(n => n.PhysicalAddress)
+                .HasMaxLength(500);
+
+            entity.HasIndex(n => n.EmployeeId);
+
+            entity.HasOne(n => n.Employee)
+                .WithMany(e => e.NextOfKinContacts)
+                .HasForeignKey(n => n.EmployeeId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         // LEAVE TYPES
         modelBuilder.Entity<LeaveType>(entity =>
         {

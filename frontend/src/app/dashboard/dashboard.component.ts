@@ -9,6 +9,7 @@ import {
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { timeout } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
 import {
@@ -21,6 +22,7 @@ import {
   LeaveRequestService,
   LeaveRequestStatus
 } from '../services/leave-request.service';
+import { EmployeeTabsComponent } from '../shared/employee-tabs.component';
 
 interface DashboardStatistics {
   totalEmployees: number;
@@ -40,7 +42,8 @@ interface DashboardStatistics {
   imports: [
     RouterLink,
     RouterLinkActive,
-    DatePipe
+    DatePipe,
+    EmployeeTabsComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'
@@ -155,7 +158,7 @@ export class DashboardComponent implements OnInit {
     this.summaryLoading = true;
     this.summaryError = false;
 
-    this.leaveService.getMyRequests().subscribe({
+    this.leaveService.getMyRequests().pipe(timeout(20000)).subscribe({
       next: response => {
         const all = response.requests ?? [];
 

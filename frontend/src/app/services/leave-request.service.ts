@@ -52,8 +52,8 @@ export interface LeaveTypeListResponse {
 export interface CreateLeaveRequest {
   leaveTypeId: number;
   startDate: string;
-  endDate: string;
-  reason: string;
+  daysApplied: number;
+  reason?: string | null;
 }
 
 export interface CreateLeaveRequestResponse {

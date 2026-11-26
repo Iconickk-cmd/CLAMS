@@ -1,0 +1,194 @@
+<div class="profile-page">
+  <div class="page-heading">
+    <div>
+      <h1>Employee Profile</h1>
+      <p>View your personal and employment information.</p>
+    </div>
+    <span class="read-only-label">Read only</span>
+  </div>
+
+  <nav class="profile-tabs" aria-label="Employee profile sections">
+    <button type="button" [class.active]="activeTab === 'basic'"
+      (click)="selectTab('basic')">Basic Details</button>
+    <button type="button" [class.active]="activeTab === 'employment'"
+      (click)="selectTab('employment')">Employment Details</button>
+    <button type="button" [class.active]="activeTab === 'statutory'"
+      (click)="selectTab('statutory')">Statutory Details</button>
+    <button type="button" [class.active]="activeTab === 'pay'"
+      (click)="selectTab('pay')">Pay Details</button>
+    <button type="button" [class.active]="activeTab === 'profile'"
+      (click)="selectTab('profile')">Profile</button>
+  </nav>
+
+  <div *ngIf="isLoading" class="state-message">
+    Loading your profile...
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="error-message">
+    {{ errorMessage }}
+    <button type="button" (click)="loadProfile()">Try again</button>
+  </div>
+
+  <ng-container *ngIf="profile as employee">
+
+    <section *ngIf="activeTab === 'basic'" class="details-section">
+      <div class="profile-card-heading">
+        <div class="avatar">
+          {{ employee.firstName.charAt(0) }}{{ employee.lastName.charAt(0) }}
+        </div>
+        <div>
+          <h2>{{ employee.fullName }}</h2>
+          <p>{{ employee.employeeNumber }}</p>
+        </div>
+      </div>
+
+      <h2>Basic Details</h2>
+      <div class="details-grid">
+        <div class="detail-item">
+          <span>First Name</span>
+          <strong>{{ employee.firstName }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Middle Name</span>
+          <strong>{{ displayValue(employee.middleName) }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Last Name</span>
+          <strong>{{ employee.lastName }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Gender</span>
+          <strong>{{ displayValue(employee.gender) }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Date of Birth</span>
+          <strong>{{ employee.dateOfBirth ? (employee.dateOfBirth | date:'dd MMM yyyy') : 'Not provided' }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="activeTab === 'employment'" class="details-section">
+      <h2>Employment Details</h2>
+      <div class="details-grid">
+        <div class="detail-item">
+          <span>Employee Number</span>
+          <strong>{{ employee.employeeNumber }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Department</span>
+          <strong>{{ employee.departmentName }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Position</span>
+          <strong>{{ employee.currentPosition?.title || 'Not assigned' }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Supervisor</span>
+          <strong>{{ displayValue(employee.supervisorName) }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Position Code</span>
+          <strong>{{ displayValue(employee.currentPosition?.code) }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Grade</span>
+          <strong>{{ displayValue(employee.currentPosition?.grade) }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Position Department</span>
+          <strong>{{ displayValue(employee.currentPosition?.positionDepartment) }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Date of Employment</span>
+          <strong>{{ employee.dateOfEmployment | date:'dd MMM yyyy' }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Employment Type</span>
+          <strong>{{ employee.employmentType }}</strong>
+        </div>
+        <div class="detail-item">
+          <span>Employment Status</span>
+          <strong>{{ employee.employmentStatus }}</strong>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="activeTab === 'statutory'" class="details-section">
+      <h2>Statutory Details</h2>
+      <div class="details-grid">
+        <div class="detail-item">
+          <span>National ID</span>
+          <strong>{{ displayValue(employee.nationalId) }}</strong>
+        </div>
+      </div>
+      <p class="section-note">
+        Other statutory information will appear here when available in your employee record.
+      </p>
+    </section>
+
+    <section *ngIf="activeTab === 'pay'" class="details-section">
+      <h2>Pay Details</h2>
+      <p class="section-note">
+        Pay information is not currently available through the employee profile service.
+      </p>
+    </section>
+
+    <ng-container *ngIf="activeTab === 'profile'">
+      <section class="details-section">
+        <h2>Contact Information</h2>
+        <div class="details-grid">
+          <div class="detail-item">
+            <span>Email Address</span>
+            <strong>{{ displayValue(employee.email) }}</strong>
+          </div>
+          <div class="detail-item">
+            <span>Phone Number</span>
+            <strong>{{ displayValue(employee.phoneNumber) }}</strong>
+          </div>
+          <div class="detail-item full-width">
+            <span>Residential Address</span>
+            <strong>{{ displayValue(employee.residentialAddress) }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="details-section">
+        <h2>Next of Kin</h2>
+
+        <div *ngIf="nextOfKinContacts.length === 0" class="section-note">
+          No Next of Kin contacts have been registered.
+          <a routerLink="/next-of-kin">Register Next of Kin</a>
+        </div>
+
+        <div *ngFor="let contact of nextOfKinContacts" class="kin-card">
+          <h3>{{ contact.fullName }}</h3>
+          <div class="details-grid">
+            <div class="detail-item">
+              <span>Relationship</span>
+              <strong>{{ contact.relationship }}</strong>
+            </div>
+            <div class="detail-item">
+              <span>Phone Number</span>
+              <strong>{{ contact.phoneNumber }}</strong>
+            </div>
+            <div class="detail-item">
+              <span>Alternative Phone</span>
+              <strong>{{ displayValue(contact.alternativePhoneNumber) }}</strong>
+            </div>
+            <div class="detail-item">
+              <span>Email Address</span>
+              <strong>{{ displayValue(contact.email) }}</strong>
+            </div>
+            <div class="detail-item full-width">
+              <span>Physical Address</span>
+              <strong>{{ displayValue(contact.physicalAddress) }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <a routerLink="/next-of-kin" class="manage-kin-link">Manage Next of Kin</a>
+      </section>
+    </ng-container>
+
+  </ng-container>
+</div>

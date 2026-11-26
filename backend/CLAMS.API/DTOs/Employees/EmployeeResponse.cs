@@ -1,4 +1,4 @@
-﻿
+
 using CLAMS.Domain.Enums;
 
 namespace CLAMS.API.DTOs.Employees;
@@ -31,6 +31,9 @@ public class EmployeeResponse
 
     public int DepartmentId { get; set; }
     public string DepartmentName { get; set; } = string.Empty;
+
+    public int? SupervisorEmployeeId { get; set; }
+    public string? SupervisorName { get; set; }
 
     public int? CurrentPositionId { get; set; }
     public string? CurrentPositionTitle { get; set; }

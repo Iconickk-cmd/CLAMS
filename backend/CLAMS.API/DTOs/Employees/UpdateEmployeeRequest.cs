@@ -1,4 +1,4 @@
-﻿
+
 using System.ComponentModel.DataAnnotations;
 using CLAMS.Domain.Enums;
 
@@ -52,5 +52,8 @@ public class UpdateEmployeeRequest
     public EmploymentType EmploymentType { get; set; }
 
     [Required]
+    [Range(1, int.MaxValue)]
+    public int SupervisorEmployeeId { get; set; }
+
     public int DepartmentId { get; set; }
 }

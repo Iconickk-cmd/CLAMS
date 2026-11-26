@@ -30,6 +30,8 @@ interface Employee {
   employmentStatus: number;
   departmentId: number;
   departmentName: string;
+  supervisorEmployeeId?: number | null;
+  supervisorName?: string | null;
   currentPositionId?: number | null;
   currentPositionTitle?: string | null;
 }
@@ -68,6 +70,7 @@ interface EmployeeForm {
   dateOfEmployment: string;
   employmentType: number;
   departmentId: number | null;
+  supervisorEmployeeId: number | null;
 }
 
 @Component({
@@ -85,6 +88,8 @@ export class EmployeeComponent implements OnInit {
   private readonly apiUrl = 'http://localhost:5219/api';
 
   employees: Employee[] = [];
+  supervisorOptions: Employee[] = [];
+  isLoadingSupervisors = false;
   departments: Department[] = [];
 
   isLoading = false;
@@ -117,6 +122,7 @@ export class EmployeeComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDepartments();
+    this.loadSupervisorOptions();
     this.loadEmployees();
   }
 
@@ -136,7 +142,8 @@ export class EmployeeComponent implements OnInit {
       emergencyContactRelationship: '',
       dateOfEmployment: '',
       employmentType: 1,
-      departmentId: null
+      departmentId: null,
+      supervisorEmployeeId: null
     };
   }
 
@@ -156,6 +163,49 @@ export class EmployeeComponent implements OnInit {
     });
   }
 
+  loadSupervisorOptions(): void {
+    this.isLoadingSupervisors = true;
+    this.supervisorOptions = [];
+    this.loadSupervisorPage(1, [], 1);
+  }
+
+  private loadSupervisorPage(
+    page: number,
+    collected: Employee[],
+    totalPages: number
+  ): void {
+    const params = new HttpParams()
+      .set('page', page)
+      .set('pageSize', 100);
+
+    this.http.get<EmployeePage>(
+      `${this.apiUrl}/employees`,
+      { params }
+    ).subscribe({
+      next: response => {
+        const allEmployees = [
+          ...collected,
+          ...(response.employees ?? [])
+        ];
+
+        const pages = response.totalPages ?? totalPages;
+
+        if (page < pages) {
+          this.loadSupervisorPage(page + 1, allEmployees, pages);
+          return;
+        }
+
+        this.supervisorOptions = allEmployees;
+        this.isLoadingSupervisors = false;
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        console.error('Supervisor options loading error:', error);
+        this.isLoadingSupervisors = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
   loadEmployees(): void {
     this.isLoading = true;
     this.hasError = false;
@@ -290,7 +340,8 @@ export class EmployeeComponent implements OnInit {
         employee.emergencyContactRelationship ?? '',
       dateOfEmployment: employee.dateOfEmployment,
       employmentType: employee.employmentType,
-      departmentId: employee.departmentId
+      departmentId: employee.departmentId,
+      supervisorEmployeeId: employee.supervisorEmployeeId ?? null
     };
 
     this.isEditing = true;
@@ -311,7 +362,8 @@ export class EmployeeComponent implements OnInit {
       !this.form.lastName.trim() ||
       !this.form.dateOfEmployment ||
       !this.form.departmentId ||
-      !this.form.employmentType
+      !this.form.employmentType ||
+      !this.form.supervisorEmployeeId
     ) {
       this.errorMessage = 'Please complete all required fields.';
       return;

@@ -1,4 +1,4 @@
-﻿
+
 using System.ComponentModel.DataAnnotations;
 using CLAMS.Domain.Enums;
 
@@ -53,5 +53,8 @@ public class CreateEmployeeRequest
         = EmploymentType.Permanent;
 
     [Required]
+    [Range(1, int.MaxValue)]
+    public int SupervisorEmployeeId { get; set; }
+
     public int DepartmentId { get; set; }
 }

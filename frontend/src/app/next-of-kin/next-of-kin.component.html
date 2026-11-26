@@ -1,0 +1,202 @@
+<div class="next-of-kin-page">
+  <div class="page-heading">
+    <div>
+      <h1>Next of Kin</h1>
+      <p>Register and manage the people you have designated as your Next of Kin.</p>
+    </div>
+
+    <button
+      *ngIf="contacts.length > 0 && !showForm"
+      type="button"
+      class="add-button"
+      (click)="beginAdd()">
+      <span>+</span> Add another
+    </button>
+  </div>
+
+  <div *ngIf="isLoading" class="state-message">
+    Loading your Next of Kin contacts...
+  </div>
+
+  <div *ngIf="message" class="success-message">
+    {{ message }}
+  </div>
+
+  <div *ngIf="errorMessage" class="error-message">
+    {{ errorMessage }}
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <section *ngIf="contacts.length === 0" class="notice-card">
+      <h2>Next of Kin registration required</h2>
+      <p>
+        You must register at least one Next of Kin contact.
+        Complete the form below to continue.
+      </p>
+    </section>
+
+    <section *ngIf="contacts.length > 0" class="contacts-section">
+      <div class="section-heading">
+        <div>
+          <h2>Registered Contacts</h2>
+          <p>{{ contacts.length }} contact{{ contacts.length === 1 ? '' : 's' }} registered</p>
+        </div>
+      </div>
+
+      <div class="contact-list">
+        <article *ngFor="let contact of contacts" class="contact-card">
+          <div class="contact-heading">
+            <div class="contact-avatar">
+              {{ contact.fullName.charAt(0) }}
+            </div>
+
+            <div class="contact-identity">
+              <h3>{{ contact.fullName }}</h3>
+              <span>{{ contact.relationship }}</span>
+            </div>
+
+            <div class="contact-actions">
+              <button
+                type="button"
+                class="edit-button"
+                (click)="beginEdit(contact)">
+                Edit
+              </button>
+
+              <button
+                type="button"
+                class="delete-button"
+                [disabled]="contacts.length <= 1"
+                [title]="contacts.length <= 1 ? 'At least one contact must remain registered' : 'Delete contact'"
+                (click)="deleteContact(contact)">
+                Delete
+              </button>
+            </div>
+          </div>
+
+          <div class="contact-details">
+            <div class="detail-item">
+              <span>Phone Number</span>
+              <strong>{{ contact.phoneNumber }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Alternative Phone</span>
+              <strong>{{ contact.alternativePhoneNumber || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item">
+              <span>Email Address</span>
+              <strong>{{ contact.email || 'Not provided' }}</strong>
+            </div>
+
+            <div class="detail-item full-width">
+              <span>Physical Address</span>
+              <strong>{{ contact.physicalAddress || 'Not provided' }}</strong>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section *ngIf="showForm" class="form-section">
+      <div class="section-heading">
+        <div>
+          <h2>{{ editingId === null ? 'Add Next of Kin' : 'Edit Next of Kin' }}</h2>
+          <p>Fields marked with * are required.</p>
+        </div>
+      </div>
+
+      <form #nextOfKinForm="ngForm" (ngSubmit)="saveContact()">
+        <div class="form-grid">
+          <div class="form-field">
+            <label for="fullName">Full Name *</label>
+            <input
+              id="fullName"
+              name="fullName"
+              type="text"
+              [(ngModel)]="form.fullName"
+              maxlength="150"
+              required
+              placeholder="Enter full name">
+          </div>
+
+          <div class="form-field">
+            <label for="relationship">Relationship *</label>
+            <input
+              id="relationship"
+              name="relationship"
+              type="text"
+              [(ngModel)]="form.relationship"
+              maxlength="100"
+              required
+              placeholder="e.g. Spouse, Parent, Sibling">
+          </div>
+
+          <div class="form-field">
+            <label for="phoneNumber">Phone Number *</label>
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              type="tel"
+              [(ngModel)]="form.phoneNumber"
+              maxlength="30"
+              required
+              placeholder="Enter phone number">
+          </div>
+
+          <div class="form-field">
+            <label for="alternativePhoneNumber">Alternative Phone Number</label>
+            <input
+              id="alternativePhoneNumber"
+              name="alternativePhoneNumber"
+              type="tel"
+              [(ngModel)]="form.alternativePhoneNumber"
+              maxlength="30"
+              placeholder="Enter alternative phone number">
+          </div>
+
+          <div class="form-field">
+            <label for="email">Email Address</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              [(ngModel)]="form.email"
+              maxlength="150"
+              placeholder="Enter email address">
+          </div>
+
+          <div class="form-field full-width">
+            <label for="physicalAddress">Physical Address</label>
+            <textarea
+              id="physicalAddress"
+              name="physicalAddress"
+              [(ngModel)]="form.physicalAddress"
+              maxlength="500"
+              rows="3"
+              placeholder="Enter physical address"></textarea>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            *ngIf="contacts.length > 0"
+            type="button"
+            class="cancel-button"
+            [disabled]="isSaving"
+            (click)="cancelForm()">
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            class="save-button"
+            [disabled]="isSaving || nextOfKinForm.invalid">
+            {{ isSaving ? 'Saving...' : (editingId === null ? 'Save Contact' : 'Update Contact') }}
+          </button>
+        </div>
+      </form>
+    </section>
+  </ng-container>
+</div>

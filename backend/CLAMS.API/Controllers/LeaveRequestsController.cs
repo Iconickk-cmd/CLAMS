@@ -209,22 +209,10 @@ public class LeaveRequestsController : ControllerBase
                 message = "Employee identity was not found in the login token."
             });
 
-        if (dto.StartDate > dto.EndDate)
-            return BadRequest(new
-            {
-                message = "The start date cannot be after the end date."
-            });
-
         if (dto.StartDate < BusinessClock.Today)
             return BadRequest(new
             {
                 message = "Leave dates cannot be in the past."
-            });
-
-        if (string.IsNullOrWhiteSpace(dto.Reason))
-            return BadRequest(new
-            {
-                message = "A reason for leave is required."
             });
 
         var employeeExists = await _context.Employees
@@ -244,23 +232,52 @@ public class LeaveRequestsController : ControllerBase
                 message = "The selected leave type is invalid or inactive."
             });
 
-        var workingDates = await _workingDayCalculator.GetWorkingDatesAsync(
-            dto.StartDate,
-            dto.EndDate,
-            cancellationToken);
+        DateOnly endDate;
+        int daysApplied;
 
-        if (workingDates.Count == 0)
-            return BadRequest(new
-            {
-                message = "The selected period contains no working days."
-            });
+        if (dto.EndDate.HasValue)
+        {
+            endDate = dto.EndDate.Value;
+
+            if (endDate < dto.StartDate)
+                return BadRequest(new
+                {
+                    message = "The end date cannot be before the start date."
+                });
+
+            daysApplied = await _workingDayCalculator.CountWorkingDaysAsync(
+                dto.StartDate,
+                endDate,
+                cancellationToken);
+
+            if (daysApplied <= 0)
+                return BadRequest(new
+                {
+                    message = "The selected date range contains no working days."
+                });
+        }
+        else
+        {
+            if (dto.DaysApplied <= 0)
+                return BadRequest(new
+                {
+                    message = "Days applied must be greater than zero."
+                });
+
+            daysApplied = dto.DaysApplied;
+
+            endDate = await _workingDayCalculator.GetEndDateForWorkingDaysAsync(
+                dto.StartDate,
+                daysApplied,
+                cancellationToken);
+        }
 
         var overlaps = await _context.Set<LeaveRequest>()
             .AnyAsync(r =>
                 r.EmployeeId == employeeId &&
                 (r.Status == LeaveRequestStatus.Pending ||
                  r.Status == LeaveRequestStatus.Approved) &&
-                r.StartDate <= dto.EndDate &&
+                r.StartDate <= endDate &&
                 r.EndDate >= dto.StartDate,
                 cancellationToken);
 
@@ -275,10 +292,10 @@ public class LeaveRequestsController : ControllerBase
             EmployeeId = employeeId,
             LeaveTypeId = dto.LeaveTypeId,
             StartDate = dto.StartDate,
-            EndDate = dto.EndDate,
-            RequestedDays = workingDates.Count,
+            EndDate = endDate,
+            RequestedDays = daysApplied,
             ApprovedDays = 0m,
-            Reason = dto.Reason.Trim(),
+            Reason = dto.Reason?.Trim() ?? string.Empty,
             Status = LeaveRequestStatus.Pending,
             SubmittedAt = DateTime.UtcNow
         };
@@ -307,7 +324,6 @@ public class LeaveRequestsController : ControllerBase
             request.Status
         });
     }
-
     // POST: api/LeaveRequests/5/approve
     // HR approval automatically allocates leave balances.
     [HttpPost("{id:int}/approve")]
@@ -424,12 +440,13 @@ public sealed class CreateLeaveRequestDto
     [Required]
     public DateOnly StartDate { get; set; }
 
-    [Required]
-    public DateOnly EndDate { get; set; }
+    public DateOnly? EndDate { get; set; }
 
-    [Required]
-    [StringLength(2000, MinimumLength = 3)]
-    public string Reason { get; set; } = string.Empty;
+    [Range(0, int.MaxValue)]
+    public int DaysApplied { get; set; }
+
+    [StringLength(2000)]
+    public string? Reason { get; set; }
 }
 
 public sealed class LeaveDecisionDto

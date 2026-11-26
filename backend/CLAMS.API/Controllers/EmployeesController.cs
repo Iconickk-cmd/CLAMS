@@ -103,6 +103,10 @@ public class EmployeesController : ControllerBase
 
                 DepartmentId = e.DepartmentId,
                 DepartmentName = e.Department.Name,
+                SupervisorEmployeeId = e.SupervisorEmployeeId,
+                SupervisorName = e.Supervisor == null
+                    ? null
+                    : e.Supervisor.FirstName + " " + e.Supervisor.LastName,
 
                 CurrentPositionId = e.PositionHistories
                     .Where(h => h.EndDate == null)
@@ -170,6 +174,10 @@ public class EmployeesController : ControllerBase
 
                 DepartmentId = e.DepartmentId,
                 DepartmentName = e.Department.Name,
+                SupervisorEmployeeId = e.SupervisorEmployeeId,
+                SupervisorName = e.Supervisor == null
+                    ? null
+                    : e.Supervisor.FirstName + " " + e.Supervisor.LastName,
 
                 CurrentPositionId = e.PositionHistories
                     .Where(h => h.EndDate == null)
@@ -287,6 +295,16 @@ public class EmployeesController : ControllerBase
             }
         }
 
+        var supervisorExists = await _context.Employees
+            .AnyAsync(e => e.Id == request.SupervisorEmployeeId);
+
+        if (!supervisorExists)
+        {
+            return BadRequest(new
+            {
+                message = "The selected supervisor does not exist."
+            });
+        }
         // Generate the final employee number after the database
         // assigns the employee's unique identity ID.
         await using var transaction =
@@ -335,6 +353,7 @@ public class EmployeesController : ControllerBase
             EmploymentStatus = EmploymentStatus.Active,
 
             DepartmentId = department.Id,
+            SupervisorEmployeeId = request.SupervisorEmployeeId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -381,6 +400,10 @@ public class EmployeesController : ControllerBase
 
                 DepartmentId = e.DepartmentId,
                 DepartmentName = e.Department.Name,
+                SupervisorEmployeeId = e.SupervisorEmployeeId,
+                SupervisorName = e.Supervisor == null
+                    ? null
+                    : e.Supervisor.FirstName + " " + e.Supervisor.LastName,
 
                 CurrentPositionId = null,
                 CurrentPositionTitle = null,
@@ -495,6 +518,24 @@ public class EmployeesController : ControllerBase
             }
         }
 
+        if (request.SupervisorEmployeeId == id)
+        {
+            return BadRequest(new
+            {
+                message = "An employee cannot be their own supervisor."
+            });
+        }
+
+        var supervisorExists = await _context.Employees
+            .AnyAsync(e => e.Id == request.SupervisorEmployeeId);
+
+        if (!supervisorExists)
+        {
+            return BadRequest(new
+            {
+                message = "The selected supervisor does not exist."
+            });
+        }
         // Prevent changing an employee's department while their
         // current position belongs to a different department.
         var currentPositionDepartment = await _context.EmployeePositionHistories
@@ -550,6 +591,7 @@ public class EmployeesController : ControllerBase
         employee.DateOfEmployment = request.DateOfEmployment;
         employee.EmploymentType = request.EmploymentType;
         employee.DepartmentId = department.Id;
+        employee.SupervisorEmployeeId = request.SupervisorEmployeeId;
         employee.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
@@ -587,6 +629,10 @@ public class EmployeesController : ControllerBase
 
                 DepartmentId = e.DepartmentId,
                 DepartmentName = e.Department.Name,
+                SupervisorEmployeeId = e.SupervisorEmployeeId,
+                SupervisorName = e.Supervisor == null
+                    ? null
+                    : e.Supervisor.FirstName + " " + e.Supervisor.LastName,
 
                 CurrentPositionId = e.PositionHistories
                     .Where(h => h.EndDate == null)

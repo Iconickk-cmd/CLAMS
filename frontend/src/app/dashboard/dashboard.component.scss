@@ -587,12 +587,12 @@
    ========================================================== */
 .emp-shell {
   /* Chamira brand: Midnight #17264F, Obsidian #111318, Electric Blue #315BCE */
-  --emp-sidebar: var(--chamira-midnight-blue, #17264f);
-  --emp-sidebar-dark: var(--chamira-obsidian, #111318);
+  --emp-sidebar: #17264f;
+  --emp-sidebar-dark: #111318;
   --emp-sidebar-line: #26376a;
-  --emp-accent: var(--chamira-electric-blue, #315bce);
-  --emp-red: var(--chamira-electric-blue, #315bce);
-  --emp-ink: var(--chamira-midnight-blue, #17264f);
+  --emp-accent: #315bce;
+  --emp-red: #315bce;
+  --emp-ink: #17264f;
   --emp-muted: #7a8799;
   --emp-line: #e4e9f0;
 
@@ -750,38 +750,6 @@
 
   .current {
     color: var(--emp-muted);
-  }
-}
-
-.emp-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 0 30px;
-  overflow-x: auto;
-  background: #fff;
-  border-bottom: 1px solid var(--emp-line);
-}
-
-.emp-tab {
-  padding: 18px 22px 16px;
-  border-bottom: 3px solid transparent;
-  color: #3a4658;
-  font-size: 16px;
-  text-decoration: none;
-  white-space: nowrap;
-
-  &.active {
-    border-bottom-color: var(--emp-accent);
-    color: var(--emp-ink);
-  }
-
-  &.disabled {
-    color: #a3adbb;
-    cursor: default;
-  }
-
-  &:hover:not(.active):not(.disabled) {
-    color: var(--emp-accent);
   }
 }
 
@@ -1125,8 +1093,7 @@
     padding: 18px 16px;
   }
 
-  .emp-breadcrumb,
-  .emp-tabs {
+  .emp-breadcrumb {
     padding-left: 16px;
     padding-right: 16px;
   }

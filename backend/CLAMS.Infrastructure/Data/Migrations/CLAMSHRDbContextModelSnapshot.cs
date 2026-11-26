@@ -142,6 +142,9 @@ namespace CLAMS.Infrastructure.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<int?>("SupervisorEmployeeId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -154,6 +157,8 @@ namespace CLAMS.Infrastructure.Data.Migrations
 
                     b.HasIndex("NationalId")
                         .IsUnique();
+
+                    b.HasIndex("SupervisorEmployeeId");
 
                     b.ToTable("Employees");
                 });
@@ -746,6 +751,57 @@ namespace CLAMS.Infrastructure.Data.Migrations
                     b.ToTable("LeaveTypes");
                 });
 
+            modelBuilder.Entity("CLAMS.Domain.Entities.NextOfKin", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AlternativePhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("PhysicalAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Relationship")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("NextOfKinContacts");
+                });
+
             modelBuilder.Entity("CLAMS.Domain.Entities.Position", b =>
                 {
                     b.Property<int>("Id")
@@ -1047,7 +1103,14 @@ namespace CLAMS.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CLAMS.Domain.Entities.Employee", "Supervisor")
+                        .WithMany("DirectReports")
+                        .HasForeignKey("SupervisorEmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Department");
+
+                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("CLAMS.Domain.Entities.EmployeeLeaveBalance", b =>
@@ -1209,6 +1272,17 @@ namespace CLAMS.Infrastructure.Data.Migrations
                     b.Navigation("LeaveRequest");
                 });
 
+            modelBuilder.Entity("CLAMS.Domain.Entities.NextOfKin", b =>
+                {
+                    b.HasOne("CLAMS.Domain.Entities.Employee", "Employee")
+                        .WithMany("NextOfKinContacts")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("CLAMS.Domain.Entities.Position", b =>
                 {
                     b.HasOne("CLAMS.Domain.Entities.Department", "Department")
@@ -1290,6 +1364,10 @@ namespace CLAMS.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("CLAMS.Domain.Entities.Employee", b =>
                 {
+                    b.Navigation("DirectReports");
+
+                    b.Navigation("NextOfKinContacts");
+
                     b.Navigation("PositionHistories");
                 });
 

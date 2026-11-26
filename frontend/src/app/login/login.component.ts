@@ -1,4 +1,4 @@
-﻿import {
+import {
   Component,
   inject,
   ChangeDetectorRef
@@ -87,7 +87,7 @@ export class LoginComponent {
             ) {
               destination = '/departments';
             } else if (roles.includes('Employee')) {
-              destination = '/leave-types';
+              destination = '/dashboard';
             }
 
             this.router.navigate([destination]);

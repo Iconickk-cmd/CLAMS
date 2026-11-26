@@ -1,0 +1,90 @@
+<div class="profile-page">
+  <app-employee-tabs [active]="section"></app-employee-tabs>
+
+  <div class="page-body">
+    @if (isLoading) {
+      <div class="state-box">Loading your details...</div>
+    } @else if (errorMessage) {
+      <div class="state-box">
+        <h3>We could not load your details</h3>
+        <p>{{ errorMessage }}</p>
+        <button type="button" class="btn-secondary" (click)="load()">Try Again</button>
+      </div>
+    } @else if (profile) {
+
+      <section class="hero-card">
+        <div class="avatar" aria-hidden="true">{{ initials }}</div>
+        <div class="hero-text">
+          <h1>{{ profile.fullName }}</h1>
+          @if (headline) {
+            <p>{{ headline }}</p>
+          }
+          <div class="chips">
+            <span class="chip">Employee No. {{ profile.employeeNumber }}</span>
+            <span [class]="'chip status ' + statusClass">{{ statusText }}</span>
+          </div>
+        </div>
+      </section>
+
+      @if (section === 'profile') {
+        <div class="card-grid">
+          <section class="info-card">
+            <h2>Personal details</h2>
+            <dl>
+              @for (field of personal; track field.label) {
+                <div>
+                  <dt>{{ field.label }}</dt>
+                  <dd>{{ field.value }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+
+          <section class="info-card">
+            <h2>Contact details</h2>
+            <dl>
+              @for (field of contact; track field.label) {
+                <div>
+                  <dt>{{ field.label }}</dt>
+                  <dd>{{ field.value }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+
+          <section class="info-card wide">
+            <h2>Employment</h2>
+            <dl class="two-col">
+              @for (field of employment; track field.label) {
+                <div>
+                  <dt>{{ field.label }}</dt>
+                  <dd>{{ field.value }}</dd>
+                </div>
+              }
+            </dl>
+          </section>
+        </div>
+      } @else {
+        <section class="info-card narrow">
+          <h2>Next of kin</h2>
+          @if (hasNextOfKin) {
+            <dl>
+              @for (field of kin; track field.label) {
+                <div>
+                  <dt>{{ field.label }}</dt>
+                  <dd>{{ field.value }}</dd>
+                </div>
+              }
+            </dl>
+          } @else {
+            <p class="empty-note">
+              No next of kin has been recorded for you yet. Please contact HR to add one.
+            </p>
+          }
+        </section>
+      }
+
+      <p class="footnote">To change any of these details, please contact HR.</p>
+    }
+  </div>
+</div>

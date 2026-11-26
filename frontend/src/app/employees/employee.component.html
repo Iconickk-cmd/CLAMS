@@ -26,12 +26,12 @@
   <!-- NOTIFICATIONS -->
   <div class="notice success" *ngIf="message">
     {{ message }}
-    <button type="button" (click)="message = ''">×</button>
+    <button type="button" (click)="message = ''">Ã—</button>
   </div>
 
   <div class="notice error" *ngIf="errorMessage && !showForm">
     {{ errorMessage }}
-    <button type="button" (click)="errorMessage = ''">×</button>
+    <button type="button" (click)="errorMessage = ''">Ã—</button>
   </div>
 
   <!-- SEARCH AND FILTERS -->
@@ -101,7 +101,7 @@
       <div>
         <h2>Employee Records</h2>
         <p>
-          Showing {{ firstRecord }}–{{ lastRecord }}
+          Showing {{ firstRecord }}â€“{{ lastRecord }}
           of {{ totalCount }} employees
         </p>
       </div>
@@ -109,7 +109,7 @@
       <button type="button"
               class="refresh-button"
               (click)="loadEmployees()">
-        ↻ Refresh
+        â†» Refresh
       </button>
     </div>
 
@@ -267,7 +267,7 @@
         <button type="button"
                 class="close-button"
                 (click)="closeDetails()">
-          ×
+          Ã—
         </button>
       </div>
 
@@ -386,6 +386,10 @@
             </div>
 
             <div class="detail-item">
+              <span>Supervisor</span>
+              <strong>{{ employee.supervisorName || 'Not assigned' }}</strong>
+            </div>
+            <div class="detail-item">
               <span>Current Position</span>
               <strong>{{ employee.currentPositionTitle || 'Not assigned' }}</strong>
             </div>
@@ -410,19 +414,19 @@
           </div>
         </section>
 
-        <!-- EMERGENCY CONTACT -->
+        <!-- NEXT OF KIN -->
         <section class="details-section">
-          <h3>Emergency Contact Information</h3>
+          <h3>Next of Kin Information</h3>
 
           <div class="details-grid">
 
             <div class="detail-item">
-              <span>Contact Name</span>
+              <span>Next of Kin Name</span>
               <strong>{{ employee.emergencyContactName || 'Not provided' }}</strong>
             </div>
 
             <div class="detail-item">
-              <span>Contact Phone</span>
+              <span>Next of Kin Phone</span>
               <strong>{{ employee.emergencyContactPhone || 'Not provided' }}</strong>
             </div>
 
@@ -480,7 +484,7 @@
         <button type="button"
                 class="close-button"
                 (click)="closeForm()">
-          ×
+          Ã—
         </button>
       </div>
 
@@ -609,19 +613,39 @@
 
         </div>
 
-        <h3>Emergency Contact Information</h3>
+
+          <div class="field full-width">
+            <label>Reporting Supervisor <span>*</span></label>
+            <select name="supervisorEmployeeId"
+                    [(ngModel)]="form.supervisorEmployeeId"
+                    required>
+              <option [ngValue]="null">
+                {{ isLoadingSupervisors ? 'Loading employees...' : 'Select Supervisor' }}
+              </option>
+              <option *ngFor="let supervisor of supervisorOptions"
+                      [ngValue]="supervisor.id"
+                      [disabled]="supervisor.id === editingEmployeeId">
+                {{ supervisor.fullName }} ({{ supervisor.employeeNumber }})
+              </option>
+            </select>
+            <small *ngIf="!isLoadingSupervisors && supervisorOptions.length === 0">
+              No employees are currently available for supervisor selection.
+            </small>
+          </div>
+
+        <h3>Next of Kin Information</h3>
 
         <div class="form-grid">
 
           <div class="field">
-            <label>Contact Name</label>
+            <label>Next of Kin Name</label>
             <input name="emergencyContactName"
                    [(ngModel)]="form.emergencyContactName"
                    maxlength="150">
           </div>
 
           <div class="field">
-            <label>Contact Phone</label>
+            <label>Next of Kin Phone</label>
             <input type="tel"
                    name="emergencyContactPhone"
                    [(ngModel)]="form.emergencyContactPhone"

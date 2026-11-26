@@ -1,4 +1,4 @@
-﻿
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -90,6 +90,12 @@ public class AuthController : ControllerBase
             new("name", $"{user.FirstName} {user.LastName}".Trim())
         };
 
+        if (user.EmployeeId.HasValue)
+        {
+            claims.Add(new Claim(
+                "employeeId",
+                user.EmployeeId.Value.ToString()));
+        }
         foreach (var role in roles)
         {
             claims.Add(new Claim("role", role));

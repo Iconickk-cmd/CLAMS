@@ -1,4 +1,4 @@
-﻿using CLAMS.Domain.Enums;
+using CLAMS.Domain.Enums;
 
 namespace CLAMS.Domain.Entities;
 
@@ -42,10 +42,19 @@ public class Employee
 
     public Department Department { get; set; } = null!;
 
+    public int? SupervisorEmployeeId { get; set; }
+
+    public Employee? Supervisor { get; set; }
+
+    public ICollection<Employee> DirectReports { get; set; }
+        = new List<Employee>();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<EmployeePositionHistory> PositionHistories { get; set; }
         = new List<EmployeePositionHistory>();
+    public ICollection<NextOfKin> NextOfKinContacts { get; set; }
+        = new List<NextOfKin>();
 }

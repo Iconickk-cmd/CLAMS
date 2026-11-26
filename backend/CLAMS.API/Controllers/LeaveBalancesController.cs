@@ -73,7 +73,9 @@ public class LeaveBalancesController : ControllerBase
 
         // Current-year balances. "Available" matches the rule used when
         // a request is approved: accrued + adjustments - taken.
-        var currentYear = await _context.Set<EmployeeLeaveBalance>()
+        // Enum values are converted to text in memory (after the query)
+        // so the database query stays simple.
+        var currentYearRows = await _context.Set<EmployeeLeaveBalance>()
             .AsNoTracking()
             .Where(b =>
                 b.EmployeeId == employeeId &&
@@ -83,21 +85,17 @@ public class LeaveBalancesController : ControllerBase
             .Select(b => new
             {
                 b.LeaveTypeId,
-                LeaveType = b.LeaveType.Name,
-                Source = "CurrentYear",
-                PayCategory = b.PayCategory.ToString(),
+                LeaveTypeName = b.LeaveType.Name,
+                b.PayCategory,
                 b.AnnualEntitlementDays,
                 b.AccruedDays,
                 b.TakenDays,
-                b.AdjustmentDays,
-                AvailableDays =
-                    b.AccruedDays + b.AdjustmentDays - b.TakenDays,
-                ExpiresOn = (DateOnly?)null
+                b.AdjustmentDays
             })
             .ToListAsync(cancellationToken);
 
         // Carry-forward lots that still have days and have not expired.
-        var carryForwards = await _context.Set<EmployeeLeaveCarryForward>()
+        var carryForwardRows = await _context.Set<EmployeeLeaveCarryForward>()
             .AsNoTracking()
             .Where(c =>
                 c.EmployeeId == employeeId &&
@@ -107,17 +105,41 @@ public class LeaveBalancesController : ControllerBase
             .Select(c => new
             {
                 c.LeaveTypeId,
-                LeaveType = c.LeaveType.Name,
-                Source = "CarryForward",
-                PayCategory = c.PayCategory.ToString(),
-                AnnualEntitlementDays = 0m,
-                AccruedDays = c.OriginalDays,
-                TakenDays = c.OriginalDays - c.RemainingDays,
-                AdjustmentDays = 0m,
-                AvailableDays = c.RemainingDays,
-                ExpiresOn = (DateOnly?)c.ExpiresOn
+                LeaveTypeName = c.LeaveType.Name,
+                c.PayCategory,
+                c.OriginalDays,
+                c.RemainingDays,
+                c.ExpiresOn
             })
             .ToListAsync(cancellationToken);
+
+        var currentYear = currentYearRows.Select(b => new
+        {
+            b.LeaveTypeId,
+            LeaveType = b.LeaveTypeName,
+            Source = "CurrentYear",
+            PayCategory = b.PayCategory.ToString(),
+            b.AnnualEntitlementDays,
+            b.AccruedDays,
+            b.TakenDays,
+            b.AdjustmentDays,
+            AvailableDays = b.AccruedDays + b.AdjustmentDays - b.TakenDays,
+            ExpiresOn = (DateOnly?)null
+        });
+
+        var carryForwards = carryForwardRows.Select(c => new
+        {
+            c.LeaveTypeId,
+            LeaveType = c.LeaveTypeName,
+            Source = "CarryForward",
+            PayCategory = c.PayCategory.ToString(),
+            AnnualEntitlementDays = 0m,
+            AccruedDays = c.OriginalDays,
+            TakenDays = c.OriginalDays - c.RemainingDays,
+            AdjustmentDays = 0m,
+            AvailableDays = c.RemainingDays,
+            ExpiresOn = (DateOnly?)c.ExpiresOn
+        });
 
         return new
         {
